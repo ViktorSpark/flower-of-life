@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Цветок Жизни — золотая геометрия</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#ffd06e;
+    --gold-bright:#ffe49b;
+    --gold-deep:#c99a3c;
+    --ink:#f5e6c4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:#07080d;overflow:hidden;
+    color:var(--ink);font-family:"Inter",system-ui,-apple-system,sans-serif}
+  #scene{position:fixed;inset:0;display:block;cursor:grab;touch-action:none}
+  #panel{
+    position:fixed;top:16px;right:16px;width:320px;max-height:calc(100% - 32px);
+    overflow-y:auto;z-index:10;border-radius:14px;padding:13px 14px 11px;
+    color:var(--ink);
+    background:linear-gradient(165deg,
+      rgba(26,27,34,.68) 0%,rgba(13,15,21,.66) 55%,rgba(10,11,16,.72) 100%);
+    border:1px solid rgba(224,178,92,.26);
+    box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 36px rgba(224,178,92,.045);
+    -webkit-backdrop-filter:blur(16px) saturate(120%);
+    backdrop-filter:blur(16px) saturate(120%);
+    scrollbar-width:thin;scrollbar-color:rgba(224,178,92,.35) transparent;
+  }
+  #panel::-webkit-scrollbar{width:5px}
+  #panel::-webkit-scrollbar-thumb{background:rgba(224,178,92,.35);border-radius:3px}
+  .sep{height:1px;margin:9px 0;background:linear-gradient(90deg,transparent,rgba(224,178,92,.28),transparent)}
+  section{margin-bottom:8px}
+  .rowlbl{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    font-size:12px;font-weight:600;letter-spacing:.6px;color:#ddc9a2;margin-bottom:4px}
+  .rowlbl .val{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:0;color:var(--gold-bright)}
+  input[type=range]{width:100%;height:18px;accent-color:var(--gold);
+    background:transparent;cursor:pointer}
+  input[type=number]{
+    width:60px;background:rgba(10,11,16,.65);color:var(--gold-bright);
+    border:1px solid rgba(224,178,92,.38);border-radius:7px;
+    padding:3px 6px;font-size:13px;font-weight:600;text-align:center}
+  input[type=number]:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(224,178,92,.15)}
+  .btn{display:block;width:100%;margin-top:8px;border:none;cursor:pointer;
+    font:600 13px "Inter",sans-serif;letter-spacing:.8px;padding:9px 0;border-radius:9px;transition:.18s}
+  .btn.primary{
+    background:linear-gradient(135deg,#ecc15a,#caa03a 55%,#a87f27);
+    color:#221903;box-shadow:0 5px 18px rgba(236,193,90,.25)}
+  .btn.primary:hover{filter:brightness(1.1);box-shadow:0 7px 24px rgba(236,193,90,.4)}
+  .btn.ghost{background:transparent;border:1px solid rgba(224,178,92,.3);color:#ccb384}
+  .btn.ghost:hover{border-color:var(--gold);color:var(--gold-bright)}
+  .btn.small{padding:7px 0;font-size:12px}
+  .zoomrow{display:flex;gap:5px}
+  .zbtn{flex:1;background:rgba(10,11,16,.5);color:#ccb384;border:1px solid rgba(224,178,92,.25);
+    border-radius:8px;padding:7px 0;cursor:pointer;font:600 13px "Inter",sans-serif;letter-spacing:1px;transition:.15s}
+  .zbtn:hover{border-color:var(--gold);color:var(--gold-bright);background:rgba(224,178,92,.08)}
+  .zbtn.fit{flex:2}
+  .acc-head{width:100%;display:flex;justify-content:space-between;align-items:center;
+    background:rgba(10,11,16,.42);border:1px solid rgba(224,178,92,.22);border-radius:8px;
+    padding:8px 12px;color:var(--gold-bright);cursor:pointer;
+    font:600 13px "Inter",sans-serif;letter-spacing:1px;transition:.15s}
+  .acc-head:hover{border-color:rgba(224,178,92,.5);background:rgba(224,178,92,.07)}
+  .chev{display:inline-block;font-size:11px;transition:transform .35s;color:#ccb384}
+  .accordion.open .chev{transform:rotate(180deg)}
+  .acc-body{max-height:0;overflow:hidden;transition:max-height .45s ease, margin .45s ease}
+  .accordion.open .acc-body{max-height:760px;margin-top:8px}
+  .checks{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#cfbd97}
+  .checks label{display:flex;align-items:center;gap:7px;cursor:pointer}
+  .checks input{accent-color:var(--gold);width:13px;height:13px;cursor:pointer}
+  .chipLbl{font-size:11px;font-weight:600;letter-spacing:.6px;color:#8d7c54;margin-bottom:4px}
+  .chipWrap{display:flex;gap:5px}
+  .chip{flex:1;background:rgba(10,11,16,.5);color:#b9a675;border:1px solid rgba(224,178,92,.18);
+    border-radius:999px;padding:4px 0;cursor:pointer;font:600 12px "Inter",sans-serif;transition:.15s}
+  .chip:hover{border-color:rgba(224,178,92,.5);color:var(--gold-bright)}
+  .chip.on{background:linear-gradient(135deg,#ecc15a,#a87f27);color:#221903;border-color:transparent;
+    box-shadow:0 3px 12px rgba(236,193,90,.3)}
+  #mtxTypes .chip{font-size:11px;padding:4px 0;white-space:nowrap;letter-spacing:0}
+  .tip{font-size:11px;color:#9f8c60;line-height:1.5;margin:0;
+    border-left:2px solid rgba(224,178,92,.35);padding-left:9px}
+  .stat{display:flex;flex-wrap:wrap;gap:5px;font-size:10.5px;color:#8d7c54;margin-bottom:8px}
+  .stat span{background:rgba(8,9,13,.55);border:1px solid rgba(224,178,92,.14);
+    padding:4px 8px;border-radius:999px;font-family:ui-monospace,Menlo,monospace}
+  .stat b{color:var(--gold-bright);font-weight:600}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<aside id="panel">
+  <section>
+    <div class="chipLbl">СИММЕТРИЧНЫЕ ЦВЕТКИ</div>
+    <div class="chipWrap" id="chipRow">
+      <button class="chip" data-n="7" type="button">7</button>
+      <button class="chip" data-n="19" type="button">19</button>
+      <button class="chip" data-n="37" type="button">37</button>
+      <button class="chip" data-n="61" type="button">61</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="rowlbl"><span>КРУГОВ</span><input id="cntn" type="number" min="1" max="61" step="1" value="19"></div>
+    <button id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
+    <button id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
+  </section>
+
+  <section>
+    <div class="rowlbl"><span>МАСШТАБ</span><span class="val" id="zoomV">100%</span></div>
+    <div class="zoomrow">
+      <button id="zOut" class="zbtn" type="button">−</button>
+      <button id="zFit" class="zbtn fit" type="button">ВПИСАТЬ</button>
+      <button id="zIn" class="zbtn" type="button">+</button>
+    </div>
+  </section>
+
+  <section id="mtxAcc" class="accordion open">
+    <button class="acc-head" type="button">
+      <span>МАТРИЦА ЦВЕТКА</span><span class="chev">▾</span>
+    </button>
+    <div id="mtxBody" class="acc-body" style="max-height:760px">
+      <div class="checks">
+        <label><input id="mOn" type="checkbox"> построение из сегментов</label>
+      </div>
+      <div class="chipLbl" style="margin-top:7px">ЭЛЕМЕНТ</div>
+      <div class="chipWrap" id="mtxTypes">
+        <button class="chip" data-t="circle" type="button">круг</button>
+        <button class="chip" data-t="petal" type="button">лепесток</button>
+        <button class="chip" data-t="leaf" type="button">листок</button>
+        <button class="chip" data-t="spike" type="button">шип</button>
+        <button class="chip" data-t="lens" type="button">линза</button>
+      </div>
+      <div class="zoomrow" style="margin-top:7px">
+        <button id="mtxClear" class="zbtn" type="button">ОЧИСТИТЬ</button>
+      </div>
+      <div class="stat" style="margin-top:6px"><span>сегментов: <b id="mCount">0</b></span></div>
+    </div>
+  </section>
+
+  <section id="acc" class="accordion">
+    <button id="setToggle" class="acc-head" type="button">
+      <span>НАСТРОЙКИ</span><span class="chev">▾</span>
+    </button>
+    <div id="setBody" class="acc-body">
+      <section style="margin-bottom:8px">
+        <div class="rowlbl"><span>СКОРОСТЬ</span><span class="val" id="spdV">1.0×</span></div>
+        <input id="spd" type="range" min="33" max="300" step="1" value="100">
+      </section>
+      <section class="checks" style="margin-bottom:8px">
+        <label><input id="cFill" type="checkbox" checked> перекрытия (прозрачная заливка)</label>
+        <label><input id="cAxes" type="checkbox" checked> оси пересечений</label>
+        <label><input id="cLens" type="checkbox"> линзы пересечений</label>
+        <label><input id="cLabels" type="checkbox" checked> буквенные обозначения</label>
+        <label><input id="cFx" type="checkbox" checked> золотые частицы</label>
+        <label><input id="cGlow" type="checkbox" checked> свечение</label>
+      </section>
+      <section style="margin-bottom:2px">
+        <div class="rowlbl"><span>ПРОЗРАЧНОСТЬ ПАНЕЛИ</span><span class="val" id="opV">0.66</span></div>
+        <input id="opcty" type="range" min="22" max="92" step="1" value="66" style="width:100%">
+      </section>
+    </div>
+  </section>
+
+  <div class="zoomrow" style="margin-top:8px">
+    <button id="undoBtn" class="zbtn" type="button">ОТМЕНИТЬ</button>
+    <button id="resetBtn" class="zbtn" type="button">СБРОС</button>
+  </div>
+
+  <div class="sep"></div>
+  <div class="stat">
+    <span id="stCount">кругов: <b>0</b></span>
+    <span id="stCands">точек: <b>0</b></span>
+    <span id="stZoom">масштаб: <b>100%</b></span>
+  </div>
+  <div id="status" class="tip">клик по точке — создать круг · колесо — зум · перетаскивание — сдвиг · тяните золотое кольцо в центре, чтобы повернуть фигуру</div>
+</aside>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const canvas = $("scene");
+const ctx = canvas.getContext("2d");
+
+let W = 0, H = 0, DPR = 1;
+const origin = { x: 0, y: 0 };
+let scale = 90;          // текущий эффективный масштаб, px на единицу радиуса
+
+const RIGHT_ZONE = 384;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+const state = {
+  units: [],            // {x,y (unit r=1), letter, parents:[idx]|null, born, dur, src}
+  autoTok: null,
+  speed: 1,
+  zoom: 1,              // множитель пользовательского масштаба
+  baseScale: 90,        // базовый масштаб, при котором цветок вписывается
+  fitSpan: null,        // ожидаемый полуразмер (в единицах r) для автомасштаба
+  rot: 0,               // ручной поворот фигуры (рад)
+  rotC: { x: 0, y: 0 }, // ось вращения — геометрический центр фигуры (unit)
+  spin: 0,              // скорость автовращения (рад/с), 0 = выключено
+  pointer: null,        // состояние drag/pan/rotate
+  caps: [],
+  pt: [],
+  mouse: null,
+  hover: null,
+  hoverEl: null,
+  allCands: [],
+  silence: false,       // первый клик гасит автовращение без создания круга
+  gVer: 0,              // версия геометрии (для кэша кандидатов матрицы)
+  mtx: { on: false, type: "circle", els: [] },
+  opts: { fill: true, axes: true, lens: false, labels: true, fx: true, glow: true }
+};
+
+/* ---------------- геометрия (unit: радиус 1) ---------------- */
+
+function interPts(ax, ay, bx, by){
+  const dx = bx - ax, dy = by - ay;
+  const d = Math.hypot(dx, dy);
+  if (d > 2.001 || d < 1e-9) return [];
+  const a = d / 2;
+  const h = Math.sqrt(Math.max(0, 1 - a * a));
+  const mx = ax + a * dx / d, my = ay + a * dy / d;
+  const ox = -h * dy / d, oy = h * dx / d;
+  return [{ x: mx + ox, y: my + oy }, { x: mx - ox, y: my - oy }];
+}
+
+function validCandidates(pts){
+  const cands = [], keys = new Set();
+  for (let i = 0; i < pts.length; i++)
+    for (let j = i + 1; j < pts.length; j++){
+      const pair = interPts(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+      for (const q of pair){
+        let ok = true;
+        for (let k = 0; k < pts.length; k++){
+          const dx = pts[k].x - q.x, dy = pts[k].y - q.y;
+          if (dx * dx + dy * dy < 1 - 1e-6){ ok = false; break; }
+        }
+        if (!ok) continue;
+        const key = Math.round(q.x * 1e4) + "_" + Math.round(q.y * 1e4);
+        if (keys.has(key)) continue;
+        keys.add(key);
+        cands.push({ x: q.x, y: q.y, parents: [i, j] });
+      }
+    }
+  return cands;
+}
+
+function isUsed(pts, p){
+  for (const c of pts) if (Math.hypot(c.x - p.x, c.y - p.y) < 1e-6) return true;
+  return false;
+}
+
+function buildAutoOrder(count){
+  const pts = [];
+  const add = (x, y, parents) => { if (isUsed(pts, { x, y })) return; pts.push({ x, y, parents }); };
+  add(0, 0, null);
+  if (count > 1) add(1, 0, null);
+  let guard = 0;
+  while (pts.length < count && guard++ < 2000){
+    const cands = validCandidates(pts);
+    if (!cands.length) break;
+    let minD = Infinity;
+    for (const c of cands){ const d = Math.hypot(c.x, c.y); if (d < minD - 1e-9) minD = d; }
+    const ring = cands.filter(c => Math.hypot(c.x, c.y) <= minD + 1e-6);
+    ring.sort((p, q) => (Math.atan2(p.y, p.x) - Math.atan2(q.y, q.x)));
+    let added = 0;
+    for (const c of ring){
+      if (pts.length >= count) break;
+      if (isUsed(pts, c)) continue;
+      pts.push(c); added++;
+    }
+    if (!added){
+      for (const c of cands){
+        if (pts.length >= count) break;
+        if (isUsed(pts, c)) continue;
+        pts.push(c); added++;
+      }
+      if (!added) break;
+    }
+  }
+  return toPairOrder(pts);
+}
+
+function toPairOrder(pts){
+  if (pts.length <= 1) return pts;
+  const res = [pts[0]];
+  const rest = pts.slice(1).sort((p, q) =>
+    (Math.hypot(p.x, p.y) - Math.hypot(q.x, q.y)));
+  const rings = [];
+  let cur = [], curD = null;
+  for (const p of rest){
+    const d = Math.round(Math.hypot(p.x, p.y) * 100);
+    if (curD === null || d === curD){ cur.push(p); curD = d; }
+    else { rings.push(cur); cur = [p]; curD = d; }
+  }
+  if (cur.length) rings.push(cur);
+  const used = new Set();
+  for (const ring of rings){
+    ring.sort((p, q) => (Math.atan2(p.y, p.x) - Math.atan2(q.y, q.x)));
+    for (const a of ring){
+      if (used.has(a)) continue;
+      used.add(a); res.push(a);
+      const b = ring.find(q => !used.has(q) && Math.hypot(q.x + a.x, q.y + a.y) < 1e-6);
+      if (b){ used.add(b); res.push(b); }
+    }
+  }
+  return res;
+}
+
+function letter(i){
+  let s = "";
+  do {
+    s = String.fromCharCode(65 + (i % 26)) + s;
+    i = Math.floor(i / 26) - 1;
+  } while (i >= 0);
+  return s;
+}
+
+/* ---------------- проекция unit -> экран (зум/сдвиг/поворот) ---------------- */
+
+function toPx(u){
+  const c = Math.cos(state.rot), s = Math.sin(state.rot);
+  const dx = u.x - state.rotC.x, dy = u.y - state.rotC.y;
+  const rx = dx * c - dy * s;
+  const ry = dx * s + dy * c;
+  return { x: origin.x + rx * scale, y: origin.y + ry * scale };
+}
+function toUnit(px, py){
+  const c = Math.cos(state.rot), s = Math.sin(state.rot);
+  const dx = (px - origin.x) / scale, dy = (py - origin.y) / scale;
+  return { x: dx * c + dy * s + state.rotC.x, y: -dx * s + dy * c + state.rotC.y };
+}
+function refreshPivot(){
+  const n = state.units.length;
+  if (!n){ state.rotC.x = 0; state.rotC.y = 0; return; }
+  let x = 0, y = 0;
+  for (const u of state.units){ x += u.x; y += u.y; }
+  state.rotC.x = x / n; state.rotC.y = y / n;
+}
+function handleAt(){
+  return { x: toPx({ x: state.rotC.x, y: state.rotC.y }).x,
+           y: toPx({ x: state.rotC.x, y: state.rotC.y }).y };
+}
+function onHandle(mx, my){
+  const h = handleAt();
+  return Math.hypot(mx - h.x, my - h.y) <= 30;
+}
+
+/* ---------------- макет, автомасштаб, зум ---------------- */
+
+function availBox(){
+  return { w: Math.max(220, W - RIGHT_ZONE - 70), h: Math.max(220, H - 70) };
+}
+function computeSpan(arr){
+  let m = 0;
+  for (const u of arr){ const d = Math.hypot(u.x, u.y); if (d > m) m = d; }
+  return m + 1.35;
+}
+function baseScaleFor(arr){
+  const sp = computeSpan(arr);
+  const ab = availBox();
+  return clamp(Math.min(ab.w / (2 * sp), ab.h / (2 * sp)), 16, 260);
+}
+function previewFit(arr){
+  state.fitSpan = computeSpan(arr);
+  state.baseScale = baseScaleFor(arr);
+  scale = state.baseScale * state.zoom;
+}
+function center(){ origin.x = Math.max(140, (W - RIGHT_ZONE) / 2); origin.y = H / 2; }
+function updateZoomLabel(){
+  $("zoomV").textContent = Math.round(state.zoom * 100) + "%";
+  $("stZoom").innerHTML = "масштаб: <b>" + Math.round(state.zoom * 100) + "%</b>";
+}
+function fitView(){
+  state.rot = 0;
+  refreshPivot();
+  state.zoom = 1;
+  previewFit(state.units.length ? state.units : [{ x: 0, y: 0 }]);
+  center();
+  updateZoomLabel();
+}
+function zoomBy(factor, cx, cy){
+  const sOld = scale;
+  const ux = (cx - origin.x) / sOld, uy = (cy - origin.y) / sOld;
+  state.zoom = clamp(state.zoom * factor, 0.15, 4);
+  scale = state.baseScale * state.zoom;
+  origin.x = cx - ux * scale;
+  origin.y = cy - uy * scale;
+  updateZoomLabel();
+}
+
+function layout(){
+  center();
+  if (state.fitSpan !== null){
+    const ab = availBox();
+    state.baseScale = clamp(Math.min(ab.w / (2 * state.fitSpan), ab.h / (2 * state.fitSpan)), 16, 260);
+  } else {
+    state.baseScale = state.units.length ? baseScaleFor(state.units) : 90;
+  }
+  scale = state.baseScale * state.zoom;
+}
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  layout();
+  seedParticles();
+}
+
+/* ---------------- частицы ---------------- */
+
+function seedParticles(){
+  state.pt = [];
+  const n = Math.round(Math.min(120, W * H / 16000));
+  for (let i = 0; i < n; i++){
+    state.pt.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 0.5 + Math.random() * 1.6,
+      vx: (Math.random() - .5) * .18, vy: (Math.random() - .5) * .18,
+      ph: Math.random() * Math.PI * 2
+    });
+  }
+}
+function stepParticles(){
+  for (const p of state.pt){
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+  }
+}
+function drawParticles(){
+  const t = performance.now() * .001;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of state.pt){
+    const tw = .35 + .55 * (0.5 + .5 * Math.sin(t * 1.4 + p.ph));
+    ctx.fillStyle = "rgba(255,206,110," + tw.toFixed(3) + ")";
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ---------------- фон --------------- */
+
+function drawBackground(){
+  ctx.fillStyle = "#07080d";
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(origin.x, origin.y, 0, origin.x, origin.y, Math.max(W, H) * .75);
+  g.addColorStop(0, "rgba(66,48,14,.30)");
+  g.addColorStop(.45, "rgba(30,24,10,.12)");
+  g.addColorStop(1, "rgba(5,6,10,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35,
+                                     W / 2, H / 2, Math.max(W, H) * .85);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,.55)");
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,205,100,.05)";
+  ctx.lineWidth = 1;
+  for (let k = 1; k <= 3; k++){
+    ctx.beginPath(); ctx.arc(origin.x, origin.y, k * scale * (k === 1 ? 2.3 : 1.7), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---------------- заголовок на холсте ---------------- */
+
+function drawTitle(){
+  ctx.save();
+  const fs = Math.max(24, Math.min(W * .045, 44));
+  ctx.font = fs + "px 'Bebas Neue', Impact, sans-serif";
+  try { ctx.letterSpacing = Math.max(3, fs * .16) + "px"; } catch (e) {}
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  const tx = origin.x, ty = Math.max(30, fs * .4 + 24);
+  const g = ctx.createLinearGradient(tx - 260, 0, tx + 260, 0);
+  g.addColorStop(0, "#ffedbb");
+  g.addColorStop(.5, "#ffd06e");
+  g.addColorStop(1, "#b4832f");
+  ctx.shadowColor = "rgba(255,200,90,.45)";
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = g;
+  ctx.fillText("ЦВЕТОК ЖИЗНИ", tx, ty);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+/* ---------------- создание/подписи ---------------- */
+
+function baseDur(first){
+  if (first) return 2200 / state.speed;
+  return 620 / state.speed;
+}
+function captionFor(u){
+  const ready = !u.parents || u.parents.every(i => state.units[i]);
+  if (!ready) return;
+  let text;
+  if (!u.parents || u.parents.length === 0) text = "точка " + u.letter + " — будущий центр";
+  else if (u.parents.length === 1)
+    text = u.letter + " ∈ окр(" + state.units[u.parents[0]].letter + "), расстояние AB = r";
+  else {
+    const a = state.units[u.parents[0]].letter, b = state.units[u.parents[1]].letter;
+    text = u.letter + " = " + a + " ∩ " + b;
+  }
+  const p = toPx({ x: u.x, y: u.y });
+  state.caps.push({
+    text,
+    x: p.x, y: p.y - scale * .9,
+    born: performance.now(), life: 3800
+  });
+}
+function updateStat(){
+  $("stCount").innerHTML = "кругов: <b>" + state.units.length + "</b>";
+  let c = 0;
+  if (state.units.length > 1) c = validCandidates(state.units).length;
+  $("stCands").innerHTML = "точек: <b>" + c + "</b>";
+}
+function setStatus(t){ $("status").textContent = t; }
+
+const ZOOM_FOR_LABELS = 1.7;
+function labelsNow(){
+  if (!state.opts.labels) return false;
+  if (state.autoTok) return true;
+  const t = performance.now();
+  for (const u of state.units) if (t - u.born < u.dur) return true;
+  return state.baseScale > 0 && scale / state.baseScale >= ZOOM_FOR_LABELS;
+}
+
+/* ---------------- авто-построение ---------------- */
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function bumpGeom(){ state.gVer++; }
+
+async function runAuto(){
+  if (state.autoTok){ cancelAuto(); return; }
+  const count = Math.max(1, Math.min(61, parseInt($("cntn").value, 10) || 19));
+  const plan = buildAutoOrder(count);
+  state.units = [];
+  refreshPivot();
+  const tok = { cancel: false };
+  state.autoTok = tok;
+  state.spin = 0;
+  state.rot = 0;
+  state.zoom = 1;
+  previewFit(plan);
+  center();
+  updateZoomLabel();
+  updateChips();
+  window.__foPlan = plan.length;
+  setStatus("построение: точек «цветка» = " + plan.length);
+  for (let i = 0; i < plan.length; i++){
+    if (tok.cancel) break;
+    const u = plan[i];
+    const paired = i + 1 < plan.length && Math.hypot(u.x + plan[i + 1].x, u.y + plan[i + 1].y) < 1e-6;
+    u.letter = letter(i);
+    u.src = "auto";
+    u.dir = 1;
+    u.born = performance.now();
+    u.dur = baseDur(i === 0);
+    state.units.push(u);
+    refreshPivot();
+    bumpGeom();
+    captionFor(u);
+    if (paired){
+      const v = plan[i + 1];
+      v.letter = letter(i + 1);
+      v.src = "auto";
+      v.dir = -1;
+      v.born = u.born;
+      v.dur = u.dur;
+      state.units.push(v);
+      refreshPivot();
+      bumpGeom();
+      captionFor(v);
+      i++;
+    }
+    updateStat();
+    await sleep(u.dur + 190);
+  }
+  state.autoTok = null;
+  if (!tok.cancel){ setStatus("построение завершено — цветок готов. кликайте по точкам, чтобы дорисовать"); startSpin(); }
+  updateStat();
+}
+function cancelAuto(){
+  if (state.autoTok){ state.autoTok.cancel = true; state.autoTok = null; setStatus("построение остановлено — можно дорисовать вручную"); }
+}
+
+/* ---------------- медленное автовращение и анимация фигуры ---------------- */
+
+const SPIN_SPEED = 0.07;             // рад/с — медленное вращение
+function startSpin(){ state.spin = SPIN_SPEED; }
+function stopSpin(){ state.spin = 0; }
+
+async function replayBuild(){
+  cancelAuto();
+  const saved = state.units;
+  if (!saved.length){ setStatus("сначала постройте цветок — фигура пуста"); return; }
+  stopSpin();
+  state.units = [];
+  refreshPivot();
+  const tok = { cancel: false };
+  state.autoTok = tok;
+  setStatus("анимация: повторное построение фигуры");
+  for (let i = 0; i < saved.length; i++){
+    if (tok.cancel) break;
+    const u = saved[i];
+    u.born = performance.now();
+    u.dur = baseDur(i === 0);
+    state.units.push(u);
+    refreshPivot();
+    captionFor(u);
+    updateStat();
+    await sleep(u.dur + 190);
+  }
+  state.autoTok = null;
+  if (!tok.cancel){ setStatus("анимация завершена"); startSpin(); }
+  updateStat();
+}
+
+/* ---------------- ручная отрисовка (всегда активна) ---------------- */
+
+function nearestOnCircle(ux, uy){
+  const u0 = state.units[0];
+  const dx = ux - u0.x, dy = uy - u0.y;
+  const d = Math.hypot(dx, dy) || 1;
+  return { x: u0.x + dx / d, y: u0.y + dy / d, parents: [0], src: "manual" };
+}
+
+function computeHover(){
+  state.hover = null;
+  state.allCands = [];
+  if (!state.mouse) return;
+  const m = toUnit(state.mouse.x, state.mouse.y);
+  if (state.units.length === 0){
+    if (Math.hypot(m.x, m.y) < 0.8) state.hover = { x: 0, y: 0, parents: null, src: "manual" };
+    return;
+  }
+  if (state.units.length === 1){
+    const c = nearestOnCircle(m.x, m.y);
+    if (Math.hypot(c.x - m.x, c.y - m.y) < 0.55) state.hover = c;
+    return;
+  }
+  const cands = validCandidates(state.units);
+  state.allCands = cands;
+  let best = null, bd = 0.6;
+  for (const c of cands){
+    const d = Math.hypot(c.x - m.x, c.y - m.y);
+    if (d < bd){ bd = d; best = c; }
+  }
+  state.hover = best;
+}
+
+function manualAdd(){
+  if (!state.hover) return false;
+  if (state.units.length >= 61) return false;
+  if (state.autoTok) return false;
+  const h = state.hover;
+  const u = {
+    x: h.x, y: h.y, parents: h.parents,
+    src: "manual", letter: letter(state.units.length),
+    born: performance.now(), dur: Math.max(300, 1150 / state.speed)
+  };
+  state.units.push(u);
+  refreshPivot();
+  bumpGeom();
+  captionFor(u);
+  updateStat();
+  setStatus("создана окружность " + u.letter);
+  return true;
+}
+
+function manualUndo(){
+  if (!state.units.length) return;
+  const u = state.units.pop();
+  refreshPivot();
+  bumpGeom();
+  state.caps = state.caps.filter(c => performance.now() - c.born < c.life);
+  updateStat(); setStatus("отменено: окружность " + u.letter);
+}
+
+/* ---------------- отрисовка ---------------- */
+
+function ease(p){ return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; }
+
+function golden(a){ return "rgba(255,209,110," + a + ")"; }
+function goldenB(a){ return "rgba(255,228,155," + a + ")"; }
+
+function drawSparkle(x, y, p){
+  const t = performance.now() * .004;
+  const a = (0.8 * Math.sin(p * Math.PI)).toFixed(3);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(t);
+  ctx.strokeStyle = "rgba(255,235,170," + a + ")";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let k = 0; k < 4; k++){
+    const r = 3.5 + 3.2 * Math.sin(p * Math.PI);
+    const ang = k * Math.PI / 2;
+    ctx.moveTo(0, 0); ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCircle(u){
+  const P = toPx(u), px = P.x, py = P.y;
+  const t = performance.now();
+  const p = Math.min(1, (t - u.born) / u.dur);
+  const active = p < 1;
+  const e = ease(p);
+  const isFirst = !u.parents;
+  const dir = u.dir || 1;   // 1 = по часовой, -1 = против
+
+  ctx.save();
+  if (isFirst && p < 0.4){
+    const r0 = scale * e;
+    const a = (0.35 * Math.sin(Math.min(1, p / .4) * Math.PI)).toFixed(3);
+    ctx.fillStyle = "rgba(255,224,140," + a + ")";
+    ctx.beginPath(); ctx.arc(px, py, r0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (state.opts.fill){
+    ctx.fillStyle = golden(active ? (0.05 * Math.max(0, p - .1)) : 0.055 * (state.opts.lens ? 1 : .5));
+    ctx.beginPath(); ctx.arc(px, py, scale, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.strokeStyle = active ? goldenB(.95) : golden(.82);
+  ctx.lineWidth = active ? 2.2 : 1.5;
+  if (state.opts.glow){ ctx.shadowColor = "rgba(255,205,90,.9)"; ctx.shadowBlur = active ? 16 : 9; }
+  ctx.beginPath();
+  if (active){
+    ctx.arc(px, py, scale, -Math.PI / 2, -Math.PI / 2 + dir * e * Math.PI * 2, dir < 0);
+  } else {
+    ctx.arc(px, py, scale, 0, Math.PI * 2);
+  }
+  ctx.stroke();
+
+  if (active){
+    const th = -Math.PI / 2 + dir * e * Math.PI * 2;
+    const tipx = px + Math.cos(th) * scale, tipy = py + Math.sin(th) * scale;
+    ctx.shadowBlur = 0;
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = "rgba(255,190,80,.62)";
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tipx, tipy); ctx.stroke();
+    ctx.setLineDash([]);
+    if (state.opts.labels){
+      const mxp = px + Math.cos(th) * scale * .62;
+      const myp = py + Math.sin(th) * scale * .62;
+      const nx = -Math.sin(th), ny = Math.cos(th);
+      ctx.font = "italic " + Math.max(11, scale * .15) + "px Georgia";
+      ctx.fillStyle = goldenB(.95);
+      ctx.fillText("r", mxp + nx * (8 + scale * .06), myp + ny * (8 + scale * .06) + 4);
+    }
+    drawSparkle(tipx, tipy, p);
+    ctx.strokeStyle = "rgba(255,200,90,.3)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(px, py, Math.min(scale * .16, 18), -Math.PI / 2, th, dir < 0);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const showLbl = labelsNow();
+  ctx.fillStyle = golden((active ? .5 : .3) * (state.opts.glow ? 1 : .7));
+  ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  if (showLbl){
+    const scaleIn = Math.min(1, p / .35);
+    ctx.font = "italic 700 " + Math.max(11, (12 + scale * .13) * scaleIn) + "px Georgia, serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillStyle = "rgba(255,232,170," + Math.min(1, p * 1.6 + .2) + ")";
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,200,90,.8)"; ctx.shadowBlur = 7; }
+    ctx.fillText(u.letter, px, py - scale * .98 - 3);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawLens(){
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(255,205,95,.14)";
+  ctx.fillStyle = "rgba(255,214,110,.045)";
+  ctx.setLineDash([]);
+  for (let i = 0; i < state.units.length; i++)
+    for (let j = i + 1; j < state.units.length; j++){
+      const a = state.units[i], b = state.units[j];
+      const pts = interPts(a.x, a.y, b.x, b.y);
+      if (pts.length < 2) continue;
+      const ap = toPx(a), bp = toPx(b);
+      const p1 = toPx(pts[0]), p2 = toPx(pts[1]);
+      const a1 = Math.atan2(p1.y - ap.y, p1.x - ap.x), a2 = Math.atan2(p2.y - ap.y, p2.x - ap.x);
+      const b1 = Math.atan2(p1.y - bp.y, p1.x - bp.x), b2 = Math.atan2(p2.y - bp.y, p2.x - bp.x);
+      ctx.beginPath();
+      ctx.arc(ap.x, ap.y, scale, a1, a2);
+      ctx.arc(bp.x, bp.y, scale, b2, b1, true);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+  ctx.restore();
+}
+
+function drawAxes(){
+  ctx.save();
+  const t = performance.now();
+  for (let i = 0; i < state.units.length; i++)
+    for (let j = i + 1; j < state.units.length; j++){
+      const a = state.units[i], b = state.units[j];
+      const pts = interPts(a.x, a.y, b.x, b.y);
+      if (pts.length < 2) continue;
+      const p1 = toPx(pts[0]), p2 = toPx(pts[1]);
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const active = t - a.born < a.dur || t - b.born < b.dur;
+      const alpha = active ? .55 : .24;
+      const ext = Math.min(scale * 2.4, 420);
+      const ux = dx / len, uy = dy / len;
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      const sx = mx - ux * (len / 2 + ext), sy = my - uy * (len / 2 + ext);
+      const ex = mx + ux * (len / 2 + ext), ey = my + uy * (len / 2 + ext);
+      const g = ctx.createLinearGradient(sx, sy, ex, ey);
+      g.addColorStop(0, "rgba(255,209,110,0)");
+      g.addColorStop(.3, "rgba(255,209,110," + (alpha * .8).toFixed(3) + ")");
+      g.addColorStop(.38, "rgba(255,214,110," + alpha + ")");
+      g.addColorStop(.5, "rgba(255,225,140," + (alpha * 1.08).toFixed(3) + ")");
+      g.addColorStop(.62, "rgba(255,214,110," + alpha + ")");
+      g.addColorStop(.7, "rgba(255,209,110," + (alpha * .8).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(255,209,110,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = "round";
+      ctx.setLineDash([6, 7]);
+      ctx.lineDashOffset = -t * .016;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  ctx.restore();
+}
+
+function drawHover(){
+  ctx.save();
+  for (const c of state.allCands){
+    const p = toPx(c);
+    ctx.fillStyle = golden(.09);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+  if (state.hover){
+    const t = performance.now();
+    const p = toPx(state.hover);
+    const pul = .8 + .35 * Math.sin(t * .005);
+    ctx.fillStyle = goldenB(.95);
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,205,90,1)"; ctx.shadowBlur = 16; }
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3.2 * pul, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 4;
+    ctx.strokeStyle = "rgba(255,215,120," + (.45 + .22 * Math.sin(t * .0052)).toFixed(3) + ")";
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([7, 8]);
+    ctx.lineDashOffset = -t * .02;
+    ctx.fillStyle = "rgba(255,214,110,.05)";
+    ctx.beginPath(); ctx.arc(p.x, p.y, scale, 0, Math.PI * 2); ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+    ctx.shadowBlur = 9;
+    ctx.strokeStyle = "rgba(255,220,130,.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6 * pul, 0, Math.PI * 2); ctx.stroke();
+    if (state.opts.labels){
+      ctx.font = "italic 700 " + Math.max(12, scale * .14) + "px Georgia, serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillStyle = goldenB(1);
+      ctx.fillText(letter(state.units.length), p.x, p.y - scale * .98 - 4);
+      const h = state.hover;
+      let hint = state.units.length === 0 ? "центр" :
+                 state.units.length === 1 ? state.units[0].letter + "·расстояние r" :
+                 (function(){
+                   const a = state.units[h.parents[0]].letter, b = state.units[h.parents[1]].letter;
+                   return a + " ∩ " + b;
+                 })();
+      ctx.font = "italic " + Math.max(10, scale * .085) + "px Georgia";
+      ctx.fillText(hint, p.x, p.y + scale * .62);
+    }
+  }
+  ctx.restore();
+}
+
+function drawCaptions(){
+  const now = performance.now();
+  state.caps = state.caps.filter(c => now - c.born < c.life);
+  ctx.save();
+  ctx.textAlign = "center";
+  for (const c of state.caps){
+    const p = (now - c.born) / c.life;
+    const a = p < .15 ? p / .15 : (1 - p) / .85;
+    const y = c.y - 12 * p;
+    ctx.font = "italic " + Math.max(11, scale * .09) + "px Georgia";
+    ctx.fillStyle = "rgba(255,224,150," + Math.max(0, a * .9).toFixed(3) + ")";
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,200,90,.7)"; ctx.shadowBlur = 8; }
+    ctx.fillText(c.text, c.x + 26, y - 6);
+  }
+  ctx.restore();
+}
+
+function drawCursor(){
+  if (!state.mouse) return;
+  const mx = state.mouse.x, my = state.mouse.y;
+  ctx.save();
+  if (state.hover){
+    ctx.fillStyle = goldenB(.95);
+    ctx.shadowColor = "#ffcd6a"; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(mx, my, 2.4, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.strokeStyle = golden(.5);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = golden(.7);
+    ctx.beginPath(); ctx.arc(mx, my, 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRotateHandle(){
+  const h = handleAt();
+  const t = performance.now();
+  const p = .6 + .4 * Math.sin(t * .0028);
+  ctx.save();
+  ctx.fillStyle = golden(.05);
+  ctx.beginPath(); ctx.arc(h.x, h.y, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(255,214,110," + (.22 * p).toFixed(3) + ")";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath(); ctx.arc(h.x, h.y, 30, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "rgba(255,228,155,.8)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(h.x, h.y, 22, -0.9, 0.85); ctx.stroke();
+  const a1 = 0.85, a2 = 2.0;
+  ctx.beginPath(); ctx.arc(h.x, h.y, 22, a1, a2); ctx.stroke();
+  const tx1 = h.x + Math.cos(a2) * 22, ty1 = h.y + Math.sin(a2) * 22;
+  const nx1 = -Math.sin(a2), ny1 = Math.cos(a2);
+  const tx2 = h.x + Math.cos(a1) * 22, ty2 = h.y + Math.sin(a1) * 22;
+  const nx2 = -Math.sin(a1), ny2 = Math.cos(a1);
+  ctx.fillStyle = "rgba(255,228,155,.8)";
+  const drawTip = (tx, ty, nx, ny) => {
+    ctx.beginPath();
+    ctx.moveTo(tx + nx * 4, ty + ny * 4);
+    ctx.lineTo(tx - nx * 3 - ny * 2.5, ty - ny * 3 + nx * 2.5);
+    ctx.lineTo(tx - nx * 3 + ny * 2.5, ty - ny * 3 - nx * 2.5);
+    ctx.closePath(); ctx.fill();
+  };
+  drawTip(tx1, ty1, nx1, ny1);
+  drawTip(tx2, ty2, -nx2, -ny2);
+  ctx.restore();
+}
+
+const ARROW_CURSOR = "url(\"data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M2%202%20L19%208%20L11%209%20L8%2017%20Z'%20fill='%23ffe9b0'%20stroke='%231b1204'%20stroke-width='1.4'%20stroke-linejoin='round'/%3E%3C/svg%3E\") 2 2, pointer";
+
+/* ================= матрица цветка (выделение сегментов) ================= */
+
+function arcSweep(s, e, ccw){
+  let sw = e - s;
+  if (!ccw && sw < 0) sw += Math.PI * 2;
+  if (ccw && sw > 0) sw -= Math.PI * 2;
+  return sw;
+}
+function arcInSpan(s, e, ccw, a){
+  const sw = arcSweep(s, e, ccw);
+  let da = a - s;
+  if (sw > 0){ if (da < 0) da += Math.PI * 2; return da <= sw + 1e-6; }
+  if (da > 0) da -= Math.PI * 2;
+  return da >= sw - 1e-6;
+}
+function arcToward(c, p1, p2, target){
+  const aS = Math.atan2(p1.y - c.y, p1.x - c.x);
+  const aE = Math.atan2(p2.y - c.y, p2.x - c.x);
+  let sw = aE - aS; if (sw <= 0) sw += Math.PI * 2;
+  const mid1 = aS + sw / 2;
+  const mid2 = aS - (Math.PI * 2 - sw) / 2;
+  const d1 = Math.hypot(c.x + Math.cos(mid1) - target.x, c.y + Math.sin(mid1) - target.y);
+  const d2 = Math.hypot(c.x + Math.cos(mid2) - target.x, c.y + Math.sin(mid2) - target.y);
+  return { x: c.x, y: c.y, start: aS, end: aE, ccw: d2 < d1 };
+}
+function revArc(ar){ return { x: ar.x, y: ar.y, start: ar.end, end: ar.start, ccw: !ar.ccw }; }
+function ptArcDist(ar, mx, my){
+  const dx = mx - ar.x, dy = my - ar.y;
+  const d = Math.hypot(dx, dy);
+  const a = Math.atan2(dy, dx);
+  if (arcInSpan(ar.start, ar.end, ar.ccw, a)) return Math.abs(d - 1);
+  const e1x = ar.x + Math.cos(ar.start), e1y = ar.y + Math.sin(ar.start);
+  const e2x = ar.x + Math.cos(ar.end), e2y = ar.y + Math.sin(ar.end);
+  return Math.min(Math.hypot(mx - e1x, my - e1y), Math.hypot(mx - e2x, my - e2y));
+}
+
+const MTX_TYPES = { circle: "круг", lens: "линза", petal: "лепесток", leaf: "листок", spike: "шип" };
+
+let candCache = { ver: -1, list: [] };
+function candidates(){
+  if (candCache.ver !== state.gVer){
+    candCache.list = buildCandidates();
+    candCache.ver = state.gVer;
+  }
+  return candCache.list;
+}
+
+function buildCandidates(){
+  const out = [];
+  const n = state.units.length;
+  if (!n) return out;
+  for (let i = 0; i < n; i++)
+    out.push({ type: "circle", idx: i });
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++){
+      const A = state.units[i], B = state.units[j];
+      const d = Math.hypot(A.x - B.x, A.y - B.y);
+      if (d < 0.05 || d > 2 - 1e-6) continue;
+      const pts = interPts(A.x, A.y, B.x, B.y);
+      if (pts.length < 2) continue;
+      const arcA = arcToward(A, pts[0], pts[1], B);
+      const arcB = revArc(arcToward(B, pts[0], pts[1], A));
+      const farA = arcToward(A, pts[0], pts[1], { x: 2 * A.x - B.x, y: 2 * A.y - B.y });
+      const farB = revArc(arcToward(B, pts[0], pts[1], { x: 2 * B.x - A.x, y: 2 * B.y - A.y }));
+      out.push({ type: "lens", a: i, b: j, arcs: [arcA, arcB] });
+      out.push({ type: "petal", a: i, b: j, arcs: [farA, farB] });
+    }
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++){
+      const A = state.units[i], B = state.units[j];
+      if (Math.hypot(A.x - B.x, A.y - B.y) > 2 - 1e-6) continue;
+      for (let k = j + 1; k < n; k++){
+        const C = state.units[k];
+        const dBC = Math.hypot(B.x - C.x, B.y - C.y);
+        const dCA = Math.hypot(C.x - A.x, C.y - A.y);
+        if (dBC > 2 - 1e-6 || dCA > 2 - 1e-6) continue;
+        const cx = (A.x + B.x + C.x) / 3, cy = (A.y + B.y + C.y) / 3;
+        const inA = Math.hypot(A.x - cx, A.y - cy) < 1 - 1e-6;
+        const inB = Math.hypot(B.x - cx, B.y - cy) < 1 - 1e-6;
+        const inC = Math.hypot(C.x - cx, C.y - cy) < 1 - 1e-6;
+        const type = (inA && inB && inC) ? "leaf" : (!inA && !inB && !inC) ? "spike" : null;
+        if (!type) continue;
+        const qMap = {};
+        const q = (u, v) => {
+          const key = u < v ? u + "_" + v : v + "_" + u;
+          if (qMap[key] === undefined){
+            const p = interPts(state.units[u].x, state.units[u].y,
+                               state.units[v].x, state.units[v].y);
+            qMap[key] = Math.hypot(p[0].x - cx, p[0].y - cy) <= Math.hypot(p[1].x - cx, p[1].y - cy)
+              ? p[0] : p[1];
+          }
+          return qMap[key];
+        };
+        const ab = q(i, j), ac = q(i, k), bc = q(j, k);
+        const Cpt = { x: cx, y: cy };
+        const arcs = [
+          arcToward(state.units[j], bc, ab, Cpt),
+          arcToward(state.units[i], ab, ac, Cpt),
+          arcToward(state.units[k], ac, bc, Cpt)
+        ];
+        out.push({ type, i, j, k, arcs });
+      }
+    }
+  return out;
+}
+
+function buildPath(el){
+  const p = new Path2D();
+  if (el.type === "circle"){
+    const P = toPx(state.units[el.idx]);
+    p.arc(P.x, P.y, scale, 0, Math.PI * 2);
+    return p;
+  }
+  const ar0 = el.arcs[0];
+  const sPt = toPx({ x: ar0.x + Math.cos(ar0.start), y: ar0.y + Math.sin(ar0.start) });
+  p.moveTo(sPt.x, sPt.y);
+  for (const ar of el.arcs){
+    const c = toPx({ x: ar.x, y: ar.y });
+    p.arc(c.x, c.y, scale, ar.start, ar.end, ar.ccw);
+  }
+  p.closePath();
+  return p;
+}
+
+function elInside(el, U){
+  const u = (i) => state.units[i];
+  if (el.type === "lens") return Math.hypot(U.x - u(el.a).x, U.y - u(el.a).y) < 1 &&
+                                Math.hypot(U.x - u(el.b).x, U.y - u(el.b).y) < 1;
+  if (el.type === "leaf") return Math.hypot(U.x - u(el.i).x, U.y - u(el.i).y) < 1 &&
+                                Math.hypot(U.x - u(el.j).x, U.y - u(el.j).y) < 1 &&
+                                Math.hypot(U.x - u(el.k).x, U.y - u(el.k).y) < 1;
+  return false;
+}
+
+function elDist(el, mx, my){
+  const U = toUnit(mx, my);
+  if (el.type === "circle"){
+    const c = state.units[el.idx];
+    return Math.abs(Math.hypot(U.x - c.x, U.y - c.y) - 1) * scale;
+  }
+  if (elInside(el, U)) return 0;
+  let best = Infinity;
+  for (const ar of el.arcs){
+    const d = ptArcDist(ar, U.x, U.y) * scale;
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+const MTX_SNAP = 16;
+function computeHoverEl(){
+  state.hoverEl = null;
+  if (!state.mtx.on || !state.mouse || !state.units.length) return;
+  const list = candidates();
+  let best = Infinity, be = null;
+  for (const el of list){
+    if (el.type !== state.mtx.type) continue;
+    const d = elDist(el, state.mouse.x, state.mouse.y);
+    if (d < best){ best = d; be = el; }
+  }
+  if (best < MTX_SNAP) state.hoverEl = be;
+}
+
+function elLabel(el){
+  const L = state.units.map(u => u.letter);
+  if (el.type === "circle") return MTX_TYPES.circle + " " + L[el.idx];
+  if (el.type === "lens" || el.type === "petal") return MTX_TYPES[el.type] + " " + L[el.a] + "–" + L[el.b];
+  return MTX_TYPES[el.type] + " " + L[el.i] + "." + L[el.j] + "." + L[el.k];
+}
+
+function toggleSelect(el){
+  const idx = state.mtx.els.indexOf(el);
+  if (idx >= 0){
+    state.mtx.els.splice(idx, 1);
+    setStatus("сегмент убран: " + elLabel(el));
+  } else {
+    state.mtx.els.push(el);
+    setStatus("сегмент добавлен: " + elLabel(el));
+  }
+  $("mCount").textContent = state.mtx.els.length;
+}
+
+function drawMatrix(){
+  const t = performance.now();
+  ctx.save();
+  ctx.lineJoin = "round";
+  for (const el of state.mtx.els){
+    const p = buildPath(el);
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,225,140,.8)"; ctx.shadowBlur = 14; }
+    ctx.fillStyle = "rgba(255,224,140,.20)";
+    ctx.fill(p);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255,238,185,.95)";
+    ctx.lineWidth = 2.4;
+    ctx.stroke(p);
+  }
+  if (state.hoverEl){
+    const p = buildPath(state.hoverEl);
+    ctx.fillStyle = "rgba(255,225,140,.13)";
+    ctx.fill(p);
+    ctx.strokeStyle = "rgba(255,240,195,.7)";
+    ctx.lineWidth = 1.7;
+    ctx.setLineDash([6, 7]);
+    ctx.lineDashOffset = -t * .02;
+    ctx.stroke(p);
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+  }
+  ctx.restore();
+}
+
+function updateCursor(){
+  if (state.pointer){ scene.style.cursor = "grabbing"; return; }
+  if (!state.mouse){ scene.style.cursor = ""; return; }
+  if (onHandle(state.mouse.x, state.mouse.y)){ scene.style.cursor = "grab"; return; }
+  if (state.hover){ scene.style.cursor = ARROW_CURSOR; return; }
+  scene.style.cursor = "";
+}
+
+function draw(){
+  computeHover();
+  computeHoverEl();
+  stepParticles();
+  drawBackground();
+  drawTitle();
+  if (state.opts.fx) drawParticles();
+  if (state.opts.lens) drawLens();
+  if (state.opts.axes) drawAxes();
+  drawRotateHandle();
+  for (const u of state.units) drawCircle(u);
+  drawHover();
+  drawMatrix();
+  drawCaptions();
+  drawCursor();
+  updateCursor();
+}
+
+/* ---------------- события ---------------- */
+
+$("goBtn").addEventListener("click", () => runAuto());
+$("animBtn").addEventListener("click", () => replayBuild());
+
+const cntNum = $("cntn");
+function updateChips(){
+  const v = parseInt(cntNum.value, 10) || 19;
+  document.querySelectorAll(".chip").forEach(b =>
+    b.classList.toggle("on", parseInt(b.dataset.n, 10) === v));
+}
+function applyCount(v){
+  v = clamp(parseInt(v, 10) || 19, 1, 61);
+  cntNum.value = v;
+  const plan = buildAutoOrder(v);
+  previewFit(plan);
+  center();
+  updateStat();
+  updateChips();
+  setStatus("предмасштаб: цветок из " + plan.length + " кругов вписан в экран");
+}
+cntNum.addEventListener("change", () => applyCount(cntNum.value));
+cntNum.addEventListener("keydown", e => {
+  if (e.key === "Enter"){ e.preventDefault(); runAuto(); }
+});
+
+const spdInput = $("spd");
+spdInput.addEventListener("input", () => {
+  state.speed = spdInput.value / 100;
+  $("spdV").textContent = state.speed.toFixed(1) + "×";
+});
+
+$("zOut").addEventListener("click", () => zoomBy(1 / 1.18, origin.x, origin.y));
+$("zIn").addEventListener("click", () => zoomBy(1.18, origin.x, origin.y));
+$("zFit").addEventListener("click", () => fitView());
+
+$("cFill").addEventListener("change", e => state.opts.fill = e.target.checked);
+$("cAxes").addEventListener("change", e => state.opts.axes = e.target.checked);
+$("cLens").addEventListener("change", e => state.opts.lens = e.target.checked);
+$("cLabels").addEventListener("change", e => state.opts.labels = e.target.checked);
+$("cFx").addEventListener("change", e => state.opts.fx = e.target.checked);
+$("cGlow").addEventListener("change", e => state.opts.glow = e.target.checked);
+
+document.querySelectorAll(".acc-head").forEach(btn =>
+  btn.addEventListener("click", () => btn.parentElement.classList.toggle("open")));
+
+const opInput = $("opcty");
+opInput.addEventListener("input", () => {
+  const v = opInput.value / 100;
+  $("opV").textContent = v.toFixed(2);
+  $("panel").style.background =
+    "linear-gradient(165deg," +
+    "rgba(26,27,34," + v + ") 0%,rgba(13,15,21," + (v - .02) + ") 55%,rgba(10,11,16," + v + ") 100%)";
+});
+
+$("undoBtn").addEventListener("click", () => manualUndo());
+$("resetBtn").addEventListener("click", () => {
+  cancelAuto();
+  state.units = [];
+  refreshPivot();
+  bumpGeom();
+  state.caps = [];
+  state.fitSpan = null;
+  state.zoom = 1;
+  state.rot = 0;
+  state.baseScale = 90;
+  scale = 90;
+  center();
+  updateZoomLabel();
+  updateStat();
+  setStatus("сброшено. задайте число кругов и нажмите «ПОСТРОИТЬ»");
+});
+$("chipRow").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  applyCount(parseInt(b.dataset.n, 10));
+  runAuto();
+});
+
+$("mOn").addEventListener("change", e => {
+  state.mtx.on = e.target.checked;
+  state.hoverEl = null;
+  setStatus(state.mtx.on ? "режим матрицы: клик по сегменту добавляет/убирает его" : "построение цветка (круги)");
+});
+$("mtxTypes").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  state.mtx.type = b.dataset.t;
+  document.querySelectorAll("#mtxTypes .chip").forEach(c =>
+    c.classList.toggle("on", c === b));
+  state.hoverEl = null;
+  setStatus("элемент матрицы: " + MTX_TYPES[state.mtx.type] + " — наведите контур и кликните");
+});
+$("mtxClear").addEventListener("click", () => {
+  state.mtx.els = [];
+  $("mCount").textContent = "0";
+  setStatus("матрица очищена");
+});
+
+const scene = $("scene");
+scene.addEventListener("wheel", e => {
+  e.preventDefault();
+  const f = e.ctrlKey ? Math.exp(-e.deltaY * .006) : (e.deltaY < 0 ? 1.06 : 1 / 1.06);
+  zoomBy(f, e.clientX, e.clientY);
+}, { passive: false });
+
+window.addEventListener("keydown", e => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  if (e.key === "+" || e.key === "="){ e.preventDefault(); zoomBy(1.15, origin.x, origin.y); }
+  else if (e.key === "-" || e.key === "_"){ e.preventDefault(); zoomBy(1 / 1.15, origin.x, origin.y); }
+  else if (e.key === "0"){ e.preventDefault(); fitView(); }
+});
+
+scene.addEventListener("pointerdown", e => {
+  state.mouse = { x: e.clientX, y: e.clientY };
+  if (state.spin || state.autoTok){
+    state.silence = true;
+    stopSpin();
+    cancelAuto();
+  }
+  scene.setPointerCapture(e.pointerId);
+  state.pointer = {
+    x: e.clientX, y: e.clientY,
+    ox: origin.x, oy: origin.y,
+    moved: 0, pan: false, rot: e.altKey || onHandle(e.clientX, e.clientY),
+    lastAng: Math.atan2(e.clientY - origin.y, e.clientX - origin.x)
+  };
+});
+scene.addEventListener("pointermove", e => {
+  state.mouse = { x: e.clientX, y: e.clientY };
+  if (state.pointer){
+    const dx = e.clientX - state.pointer.x, dy = e.clientY - state.pointer.y;
+    const moved = Math.hypot(dx, dy);
+    if (moved <= 6) return;
+    state.pointer.pan = true;
+    if (state.pointer.rot){
+      const ang = Math.atan2(e.clientY - origin.y, e.clientX - origin.x);
+      state.rot += ang - state.pointer.lastAng;
+      state.pointer.lastAng = ang;
+    } else {
+      origin.x = state.pointer.ox + dx;
+      origin.y = state.pointer.oy + dy;
+    }
+  }
+});
+scene.addEventListener("pointerup", e => {
+  if (state.pointer){
+    const wasPan = state.pointer.pan;
+    state.pointer = null;
+    if (wasPan){
+      state.silence = false;
+    } else if (state.silence){
+      state.silence = false;
+    } else {
+      state.mouse = { x: e.clientX, y: e.clientY };
+      if (state.mtx.on){
+        if (state.hoverEl) toggleSelect(state.hoverEl);
+      } else {
+        manualAdd();
+      }
+    }
+  }
+});
+scene.addEventListener("pointerleave", () => { state.mouse = null; });
+scene.addEventListener("pointercancel", () => { state.pointer = null; });
+
+/* ---------------- запуск ---------------- */
+
+window.addEventListener("resize", resize);
+resize();
+seedParticles();
+updateStat();
+updateZoomLabel();
+updateChips();
+document.querySelector('#mtxTypes .chip[data-t="circle"]').classList.add("on");
+setTimeout(() => runAuto(), 700);
+
+(function loop(){
+  const now = performance.now();
+  if (state.spin) state.rot += state.spin * (now - (loop.lastT || now)) / 1000;
+  loop.lastT = now;
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
