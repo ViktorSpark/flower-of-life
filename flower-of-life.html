@@ -131,12 +131,68 @@
     font:500 12px "Inter",sans-serif;letter-spacing:.6px;text-decoration:underline;padding:4px}
   #crCancel:hover{color:var(--gold-bright)}
   #crStatus{min-height:15px;margin-top:10px;font-size:11.5px;color:#a89771}
+
+  /* ---- панель: сворачивание + компактная лента с иконками ---- */
+  .ico{display:inline-grid;place-items:center;line-height:0;flex:none}
+  .ico svg{width:17px;height:17px;display:block}
+  #panelToggle{
+    position:absolute;top:9px;right:9px;width:32px;height:32px;padding:0;
+    display:grid;place-items:center;cursor:pointer;z-index:3;
+    background:rgba(10,11,16,.55);border:1px solid rgba(224,178,92,.28);
+    border-radius:9px;color:var(--gold-bright);transition:.18s}
+  #panelToggle:hover{border-color:var(--gold);background:rgba(224,178,92,.12)}
+  #panelToggle .ico svg{width:16px;height:16px}
+
+  /* свёрнуто: узкая вертикальная лента, только иконки (как в фотошопе) */
+  #panel.collapsed{width:64px;padding:8px 7px 12px;overflow-x:hidden;overflow-y:auto}
+  #panel.collapsed #panelToggle{position:static;width:48px;height:42px;margin:0 auto 7px}
+  #panel.collapsed #panelToggle .ico svg{transform:rotate(180deg)}
+  #panel.collapsed .lbl,#panel.collapsed .chev,
+  #panel.collapsed .sep,#panel.collapsed .chipLbl,#panel.collapsed #chipRow,
+  #panel.collapsed .rowlbl,#panel.collapsed input[type=range],
+  #panel.collapsed input[type=number],#panel.collapsed .acc-body,
+  #panel.collapsed .stat,#panel.collapsed .tip,#panel.collapsed .val{display:none}
+  #panel.collapsed .btn,#panel.collapsed .zbtn,#panel.collapsed .crystal-btn,
+  #panel.collapsed .acc-head{
+    width:48px;height:44px;margin:0 auto 6px;padding:0;border-radius:11px;
+    display:grid;place-items:center;font-size:0;letter-spacing:0}
+  #panel.collapsed .btn.primary{font-size:0}
+  #panel.collapsed .crystal-btn{margin:9px auto 0}
+  #panel.collapsed .zoomrow{flex-direction:column;gap:6px;margin-top:6px}
+  #panel.collapsed .ico svg{width:20px;height:20px}
+  /* переключатели настроек остаются в ленте как иконки-состояния */
+  #panel.collapsed .checks{gap:6px}
+  #panel.collapsed .checks label{
+    width:48px;height:44px;margin:0 auto;border-radius:11px;cursor:pointer;
+    display:grid;place-items:center;position:relative;
+    background:rgba(10,11,16,.5);border:1px solid rgba(224,178,92,.2);color:#8a7a58}
+  #panel.collapsed .checks label input{
+    position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  #panel.collapsed .checks input:checked ~ .ico{color:#221903}
+  #panel.collapsed .checks label:has(input:checked){
+    background:linear-gradient(135deg,#ecc15a,#a87f27);
+    border-color:transparent;color:#221903;
+    box-shadow:0 3px 12px rgba(236,193,90,.3)}
+  #panel.collapsed .checks .ico{position:relative;z-index:1}
+  #panel.collapsed .checks label:active{transform:translateY(1px)}
+
+  /* телефон: панель чуть уже, поля меньше */
+  body.touch #panel{top:10px;right:10px;width:300px;max-height:calc(100% - 20px);padding:12px}
+  body.touch #panel.collapsed{width:58px;padding:7px 6px 10px}
+  body.touch #panel.collapsed #panelToggle,
+  body.touch #panel.collapsed .btn,
+  body.touch #panel.collapsed .zbtn,
+  body.touch #panel.collapsed .crystal-btn,
+  body.touch #panel.collapsed .acc-head,
+  body.touch #panel.collapsed .checks label{width:44px;height:42px}
+  body.touch #panel.collapsed .ico svg{width:19px;height:19px}
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
 
 <aside id="panel">
+  <button id="panelToggle" type="button" title="Свернуть панель" aria-label="Свернуть панель"></button>
   <section>
     <div class="chipLbl">СИММЕТРИЧНЫЕ ЦВЕТКИ</div>
     <div class="chipWrap" id="chipRow">
@@ -149,26 +205,26 @@
 
   <section>
     <div class="rowlbl"><span>КРУГОВ</span><input id="cntn" type="number" min="1" step="1" value="19"></div>
-    <button id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
-    <button id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
+    <button data-ico="play" id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
+    <button data-ico="replay" id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
   </section>
 
   <section>
     <div class="rowlbl"><span>МАСШТАБ</span><span class="val" id="zoomV">100%</span></div>
     <div class="zoomrow">
-      <button id="zOut" class="zbtn" type="button">−</button>
-      <button id="zFit" class="zbtn fit" type="button">ВПИСАТЬ</button>
-      <button id="zIn" class="zbtn" type="button">+</button>
+      <button data-ico="minus" id="zOut" class="zbtn" type="button">−</button>
+      <button data-ico="frame" id="zFit" class="zbtn fit" type="button">ВПИСАТЬ</button>
+      <button data-ico="plus" id="zIn" class="zbtn" type="button">+</button>
     </div>
   </section>
 
   <section id="mtxAcc" class="accordion open">
-    <button class="acc-head" type="button">
+    <button data-ico="grid" id="mtxToggle" class="acc-head" type="button">
       <span>МАТРИЦА ЦВЕТКА</span><span class="chev">▾</span>
     </button>
     <div id="mtxBody" class="acc-body" style="max-height:760px">
       <div class="checks">
-        <label><input id="mOn" type="checkbox"> построение из сегментов</label>
+        <label data-ico="cursor"><input id="mOn" type="checkbox"> построение из сегментов</label>
       </div>
       <div class="chipLbl" style="margin-top:7px">СЛОЙ</div>
       <div class="chipWrap" id="mtxTypes">
@@ -178,14 +234,14 @@
         <button class="chip" data-t="petal" type="button">лепесток</button>
       </div>
       <div class="zoomrow" style="margin-top:7px">
-        <button id="mtxClear" class="zbtn" type="button">ОЧИСТИТЬ</button>
+        <button data-ico="close" id="mtxClear" class="zbtn" type="button">ОЧИСТИТЬ</button>
       </div>
       <div class="stat" style="margin-top:6px"><span>сегментов: <b id="mCount">0</b></span></div>
     </div>
   </section>
 
   <section id="acc" class="accordion">
-    <button id="setToggle" class="acc-head" type="button">
+    <button data-ico="gear" id="setToggle" class="acc-head" type="button">
       <span>НАСТРОЙКИ</span><span class="chev">▾</span>
     </button>
     <div id="setBody" class="acc-body">
@@ -194,13 +250,13 @@
         <input id="spd" type="range" min="33" max="300" step="1" value="100">
       </section>
       <section class="checks" style="margin-bottom:8px">
-        <label><input id="cFill" type="checkbox" checked> перекрытия (прозрачная заливка)</label>
-        <label><input id="cAxes" type="checkbox" checked> оси пересечений</label>
-        <label><input id="cLens" type="checkbox"> линзы пересечений</label>
-        <label><input id="cLabels" type="checkbox" checked> буквенные обозначения</label>
-        <label><input id="cFx" type="checkbox" checked> золотые частицы</label>
-        <label><input id="cGlow" type="checkbox" checked> свечение</label>
-        <label><input id="cSound" type="checkbox" checked> звук отрисовки</label>
+        <label data-ico="layers"><input id="cFill" type="checkbox" checked> перекрытия (прозрачная заливка)</label>
+        <label data-ico="cross"><input id="cAxes" type="checkbox" checked> оси пересечений</label>
+        <label data-ico="eye"><input id="cLens" type="checkbox"> линзы пересечений</label>
+        <label data-ico="text"><input id="cLabels" type="checkbox" checked> буквенные обозначения</label>
+        <label data-ico="sparkles"><input id="cFx" type="checkbox" checked> золотые частицы</label>
+        <label data-ico="sun"><input id="cGlow" type="checkbox" checked> свечение</label>
+        <label data-ico="speaker"><input id="cSound" type="checkbox" checked> звук отрисовки</label>
       </section>
       <section style="margin-bottom:2px">
         <div class="rowlbl"><span>ПРОЗРАЧНОСТЬ ПАНЕЛИ</span><span class="val" id="opV">0.66</span></div>
@@ -210,17 +266,17 @@
   </section>
 
   <div class="zoomrow" style="margin-top:8px">
-    <button id="undoBtn" class="zbtn" type="button">ОТМЕНИТЬ</button>
-    <button id="resetBtn" class="zbtn" type="button">СБРОС</button>
+    <button data-ico="undo" id="undoBtn" class="zbtn" type="button">ОТМЕНИТЬ</button>
+    <button data-ico="trash" id="resetBtn" class="zbtn" type="button">СБРОС</button>
   </div>
 
   <div class="zoomrow" style="margin-top:6px">
-    <button id="saveBtn" class="zbtn" type="button">СОХРАНИТЬ</button>
-    <button id="loadBtn" class="zbtn" type="button">ЗАГРУЗИТЬ</button>
+    <button data-ico="download" id="saveBtn" class="zbtn" type="button">СОХРАНИТЬ</button>
+    <button data-ico="upload" id="loadBtn" class="zbtn" type="button">ЗАГРУЗИТЬ</button>
   </div>
   <input id="loadFile" type="file" accept=".json,application/json" style="display:none">
 
-  <button id="crystalBtn" class="crystal-btn" type="button">КРИСТАЛЛИЗАЦИЯ</button>
+  <button data-ico="gem" id="crystalBtn" class="crystal-btn" type="button">КРИСТАЛЛИЗАЦИЯ</button>
 
   <div class="sep"></div>
   <div class="stat">
@@ -252,7 +308,7 @@ let W = 0, H = 0, DPR = 1;
 const origin = { x: 0, y: 0 };
 let scale = 90;          // текущий эффективный масштаб, px на единицу радиуса
 
-const RIGHT_ZONE = 384;
+let RIGHT_ZONE = 384;        // зарезервированная справа ширина под панель (меняется при сворачивании)
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const MAX_UNITS = 1500; // практически безлимитно: защита от зависания (подбор точек O(n³)) при гигантских значениях
 
@@ -1615,7 +1671,11 @@ function playDrawSound(){
 document.addEventListener("pointerdown", unlockSnd, { passive: true });
 
 document.querySelectorAll(".acc-head").forEach(btn =>
-  btn.addEventListener("click", () => btn.parentElement.classList.toggle("open")));
+  btn.addEventListener("click", () => {
+    // из свёрнутой ленты иконка раскрывает панель и открывает нужную секцию
+    if (panelCollapsed) setPanelCollapsed(false);
+    btn.parentElement.classList.toggle("open");
+  }));
 
 const opInput = $("opcty");
 opInput.addEventListener("input", () => {
@@ -1836,6 +1896,10 @@ scene.addEventListener("pointerup", e => {
       state.silence = false;
     } else {
       state.mouse = { x: e.clientX, y: e.clientY };
+      // на тач-устройствах между pointerdown и pointerup не бывает ни pointermove,
+      // ни кадра анимации — без пересчёта здесь наведение было бы устаревшим
+      computeHover();
+      computeHoverEl();
       if (state.mtx.on){
         if (state.hoverEl) toggleSelect(state.hoverEl);
       } else {
@@ -2110,8 +2174,122 @@ $("crName").addEventListener("keydown", e => {
   if (e.key === "Escape"){ e.preventDefault(); closeCrystal(); }
 });
 
+/* ---------------- панель: иконки, устройство, сворачивание ---------------- */
+
+const ICONS = {
+  play:     '<path d="M8 5.5 19 12 8 18.5z" fill="currentColor" stroke="none"/>',
+  replay:   '<path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 3.5v5h-5"/>',
+  plus:     '<path d="M12 5v14M5 12h14"/>',
+  minus:    '<path d="M5 12h14"/>',
+  frame:    '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  gear:     '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>',
+  grid:     '<rect x="3.5" y="3.5" width="17" height="17" rx="3.2"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="15" r="1.5"/>',
+  undo:     '<path d="M4 9h10a5.5 5.5 0 0 1 0 11h-4"/><path d="M8 5 4 9l4 4"/>',
+  trash:    '<path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 12.5h9L17.5 7"/>',
+  download: '<path d="M12 3.5v11M8 11l4 4 4-4M4.5 20h15"/>',
+  upload:   '<path d="M12 15.5v-11M8 8l4-4 4 4M4.5 20h15"/>',
+  gem:      '<path d="M6.5 3.5h11l3 5.5L12 20 3.5 9z"/><path d="M3.5 9h17M9 3.5 6.5 9 12 20l5.5-11L15 3.5"/>',
+  close:    '<path d="M6 6l12 12M18 6 6 18"/>',
+  layers:   '<path d="M12 3.2 21 8l-9 4.8L3 8z"/><path d="M3 12.6 12 17.4l9-4.8M3 16.6 12 21.4l9-4.8"/>',
+  cross:    '<circle cx="12" cy="12" r="3"/><path d="M12 2.6v3.2M12 18.2v3.2M2.6 12h3.2M18.2 12h3.2"/>',
+  eye:      '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  text:     '<path d="M4.5 7V4.5h15V7M12 4.5v15M8.5 19.5h7"/>',
+  sparkles: '<path d="M11 3.5 12.6 8 17 9.6 12.6 11.2 11 15.7 9.4 11.2 5 9.6 9.4 8z"/><path d="M18 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  sun:      '<circle cx="12" cy="12" r="3.8"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.4 5.4 7 7M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/>',
+  speaker:  '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.5a8 8 0 0 1 0 11"/>',
+  sliders:  '<path d="M4 7.5h5M15 7.5h5M4 16.5h5M15 16.5h5"/><circle cx="12" cy="7.5" r="2.4"/><circle cx="12" cy="16.5" r="2.4"/>',
+  cursor:   '<path d="M6 3.5l12 7.6-5.3 1.4 3.1 6.2-2.6 1.3-3.1-6.2-3.7 4z"/>'
+};
+function icoSVG(name){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+         'stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || "") + "</svg>";
+}
+function wrapLabel(el){
+  [...el.childNodes].forEach(n => {
+    if (n.nodeType === 3 && n.textContent.trim()){
+      const sp = document.createElement("span");
+      sp.className = "lbl";
+      sp.textContent = n.textContent.trim();
+      n.replaceWith(sp);
+    }
+  });
+}
+function initPanelIcons(){
+  $("panelToggle").innerHTML = '<span class="ico">' + icoSVG("sliders") + "</span>";
+  // переключатели настроек: иконка ставится ПОСЛЕ чекбокса, чтобы работал селектор ~
+  document.querySelectorAll("#panel .checks label[data-ico]").forEach(l => {
+    const inp = l.querySelector("input[type=checkbox]");
+    const s = document.createElement("span");
+    s.className = "ico";
+    s.innerHTML = icoSVG(l.dataset.ico);
+    if (inp) inp.after(s); else l.prepend(s);
+    wrapLabel(l);
+  });
+  // кнопки: иконка первым элементом, подпись в .lbl
+  document.querySelectorAll("#panel [data-ico]").forEach(el => {
+    if (el.closest(".checks") || el.id === "panelToggle") return;
+    if (el.querySelector(".ico")) return;
+    const s = document.createElement("span");
+    s.className = "ico";
+    s.innerHTML = icoSVG(el.dataset.ico);
+    el.prepend(s);
+    wrapLabel(el);
+    if (el.classList.contains("acc-head")){
+      const first = el.querySelector("span:not(.chev)");
+      if (first) first.classList.add("lbl");
+    }
+  });
+}
+
+/* устройство: телефон = нет курсора/hover или узкий экран */
+const MQ_TOUCH = matchMedia("(hover: none) and (pointer: coarse)");
+const MQ_NARROW = matchMedia("(max-width: 760px)");
+const isPhone = () => MQ_TOUCH.matches || MQ_NARROW.matches;
+
+let panelCollapsed = false;
+let userChosePanel = false;
+
+function panelReserve(){
+  if (panelCollapsed) return isPhone() ? 72 : 96;
+  return isPhone() ? 322 : 384;
+}
+function syncPanelLayout(recenter){
+  document.body.classList.toggle("touch", isPhone());
+  RIGHT_ZONE = panelReserve();
+  if (recenter !== false && state.units.length) center();
+}
+function setPanelCollapsed(v, remember){
+  panelCollapsed = !!v;
+  $("panel").classList.toggle("collapsed", panelCollapsed);
+  $("panelToggle").title = panelCollapsed ? "Развернуть панель" : "Свернуть панель";
+  $("panelToggle").setAttribute("aria-label", $("panelToggle").title);
+  if (remember !== false){
+    userChosePanel = true;
+    try { localStorage.setItem("fol-panel", panelCollapsed ? "1" : "0"); } catch (e) {}
+  }
+  syncPanelLayout();
+}
+function initPanel(){
+  initPanelIcons();
+  let saved = null;
+  try { saved = localStorage.getItem("fol-panel"); } catch (e) {}
+  if (saved === "1" || saved === "0"){
+    userChosePanel = true;
+    setPanelCollapsed(saved === "1", false);
+  } else {
+    setPanelCollapsed(isPhone(), false);
+  }
+}
+$("panelToggle").addEventListener("click", () => setPanelCollapsed(!panelCollapsed));
+addEventListener("resize", () => {
+  document.body.classList.toggle("touch", isPhone());
+  RIGHT_ZONE = panelReserve();
+  if (!userChosePanel) setPanelCollapsed(isPhone(), false);
+});
+
 /* ---------------- запуск ---------------- */
 
+initPanel();
 window.addEventListener("resize", resize);
 resize();
 seedParticles();
