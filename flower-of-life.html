@@ -335,6 +335,7 @@ const state = {
   lastAct: 0,           // время последней активности пользователя (мс) — для затухания кольца поворота
   ringA: 0,             // текущая прозрачность кольца поворота 0..1 (плавное появление/затухание)
   crystal: { on: false, t0: 0 }, // кристаллизация: обводка периметра + скрытые оси
+  ambient: { ramp: 0, on: false, waveT0: 0 }, // фоновое вращение по простою + золотой импульс
   opts: { fill: true, axes: true, lens: false, labels: true, fx: true, glow: true, sound: true }
 };
 
@@ -743,18 +744,89 @@ async function runAuto(){
     await sleep(u.dur + 190);
   }
   state.autoTok = null;
-  if (!tok.cancel){ setStatus("построение завершено — цветок готов. кликайте по точкам, чтобы дорисовать"); startSpin(); }
+  if (!tok.cancel){ setStatus("построение завершено — цветок готов. кликайте по точкам, чтобы дорисовать"); noteAct(); }
   updateStat();
 }
 function cancelAuto(){
   if (state.autoTok){ state.autoTok.cancel = true; state.autoTok = null; setStatus("построение остановлено — можно дорисовать вручную"); }
 }
 
-/* ---------------- медленное автовращение и анимация фигуры ---------------- */
+/* ---------------- фоновое вращение по простою и золотой импульс ---------------- */
 
-const SPIN_SPEED = 0.07;             // рад/с — медленное вращение
-function startSpin(){ state.spin = SPIN_SPEED; }
-function stopSpin(){ state.spin = 0; }
+const AMBIENT_SPIN  = 0.12;   // рад/с — скорость фонового вращения (оборот ~52 с)
+const IDLE_SPIN_MS  = 5000;   // мс бездействия до начала вращения
+const IDLE_RAMP_MS  = 2000;   // мс — плавный разгон вращения
+const IDLE_BRAKE_MS = 450;    // мс — плавное торможение, когда пользователь вернулся
+const WAVE_PERIOD_MS = 10000; // мс — период золотого импульса из центра
+const WAVE_MS       = 2800;   // мс — сколько волна бежит по элементам
+
+function stopSpin(){ state.ambient.ramp = 0; state.spin = 0; }
+
+/* вращение набирает ход плавно и так же мягко останавливается при действии */
+function updateAmbient(now){
+  const idle  = now - state.lastAct;
+  const canSpin = state.units.length > 1 && !state.autoTok && !state.crystal.on;
+  const want  = (idle > IDLE_SPIN_MS && canSpin) ? 1 : 0;
+  const tau  = want ? IDLE_RAMP_MS : IDLE_BRAKE_MS;
+  state.ambient.ramp += (want - state.ambient.ramp) * Math.min(1, frameDt / tau);
+  if (state.ambient.ramp < 0.02) state.ambient.ramp = 0;
+  state.ambient.on = state.ambient.ramp > 0.05;
+  state.spin = AMBIENT_SPIN * state.ambient.ramp;
+  if (want && now - state.ambient.waveT0 > WAVE_PERIOD_MS) state.ambient.waveT0 = now;
+}
+
+/* радиус волны: до внешнего края крайних окружностей цветка */
+function waveUnitR(){
+  let m = 0;
+  for (const u of state.units){
+    const d = Math.hypot(u.x - state.rotC.x, u.y - state.rotC.y);
+    if (d > m) m = d;
+  }
+  return m + 1;
+}
+
+/* золотой импульс из центра: волна расходится и подсвечивает круги по мере прохода */
+function drawAmbientWave(){
+  if (!state.ambient.on) return;
+  const age = performance.now() - state.ambient.waveT0;
+  if (age < 0 || age > WAVE_MS) return;
+  const p = age / WAVE_MS;
+  const maxD = waveUnitR();
+  const Runit = p * (maxD + 0.45);
+  const a = Math.pow(1 - p, 1.6);
+  const C = handleAt();
+  // ширина фронта: половина наибольшего промежутка между оболочками кругов (максимум 1.0),
+  // иначе волна «пропадает» в промежутках и рябит по рисунку
+  const W = 0.62;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  if (p < 0.22){ // вспышка в самом центре в начале импульса
+    const cp = p / 0.22;
+    const r = scale * 2.6 * (0.4 + cp);
+    const cg = ctx.createRadialGradient(C.x, C.y, 0, C.x, C.y, r);
+    cg.addColorStop(0, "rgba(255,236,180," + (0.5 * (1 - cp)).toFixed(3) + ")");
+    cg.addColorStop(1, "rgba(255,190,80,0)");
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(C.x, C.y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  for (const u of state.units){ // круги, через которые проходит фронт волны
+    const d = Math.hypot(u.x - state.rotC.x, u.y - state.rotC.y);
+    const dd = Math.abs(d - Runit);
+    if (dd >= W) continue;
+    const k = Math.pow(1 - dd / W, 2);
+    const P = toPx(u);
+    ctx.shadowColor = "rgba(255,205,90,.95)";
+    ctx.shadowBlur = 18 * k;
+    ctx.strokeStyle = "rgba(255,240,195," + (k * a * 0.95).toFixed(3) + ")";
+    ctx.lineWidth = 1.5 + 3.2 * k;
+    ctx.beginPath(); ctx.arc(P.x, P.y, scale, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.shadowBlur = 26; // сам фронт волны в свободном пространстве
+  ctx.strokeStyle = "rgba(255,232,170," + (0.5 * a).toFixed(3) + ")";
+  ctx.lineWidth = 2 + 5 * (1 - p);
+  ctx.beginPath(); ctx.arc(C.x, C.y, Runit * scale, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
 
 async function replayBuild(){
   cancelAuto();
@@ -779,7 +851,7 @@ async function replayBuild(){
     await sleep(u.dur + 190);
   }
   state.autoTok = null;
-  if (!tok.cancel){ setStatus("анимация завершена"); startSpin(); }
+  if (!tok.cancel){ setStatus("анимация завершена"); noteAct(); }
   updateStat();
 }
 
@@ -1598,6 +1670,7 @@ function draw(){
     drawRotRing();
     for (const u of state.units) drawCircle(u);
   }
+  drawAmbientWave();
   drawHover();
   drawMatrix();
   drawCaptions();
@@ -1855,9 +1928,8 @@ window.addEventListener("keydown", e => {
 scene.addEventListener("pointerdown", e => {
   noteAct();
   state.mouse = { x: e.clientX, y: e.clientY };
-  if (state.spin || state.autoTok){
+  if (state.autoTok){
     state.silence = true;
-    stopSpin();
     cancelAuto();
   }
   scene.setPointerCapture(e.pointerId);
@@ -2302,6 +2374,7 @@ setTimeout(() => runAuto(), 700);
 (function loop(){
   const now = performance.now();
   frameDt = now - (loop.lastT || now);
+  updateAmbient(now);
   if (state.spin) state.rot += state.spin * frameDt / 1000;
   loop.lastT = now;
   draw();
