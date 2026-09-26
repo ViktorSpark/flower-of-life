@@ -84,6 +84,53 @@
   .stat span{background:rgba(8,9,13,.55);border:1px solid rgba(224,178,92,.14);
     padding:4px 8px;border-radius:999px;font-family:ui-monospace,Menlo,monospace}
   .stat b{color:var(--gold-bright);font-weight:600}
+
+  /* ---- кристаллизация ---- */
+  .crystal-btn{
+    display:block;width:100%;margin-top:8px;cursor:pointer;border:1px solid rgba(236,193,90,.55);
+    border-radius:10px;padding:11px 0;
+    background:linear-gradient(135deg,rgba(236,193,90,.16),rgba(168,127,39,.10) 55%,rgba(236,193,90,.05));
+    color:var(--gold-bright);font:700 13px "Inter",sans-serif;letter-spacing:1.6px;
+    text-shadow:0 0 12px rgba(255,205,90,.35);transition:.2s}
+  .crystal-btn:hover{background:linear-gradient(135deg,rgba(236,193,90,.28),rgba(168,127,39,.16));
+    box-shadow:0 0 22px rgba(236,193,90,.3),inset 0 0 18px rgba(255,205,90,.12)}
+  .crystal-btn:active{transform:translateY(1px)}
+  .crystal-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+  #crOverlay{
+    position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(4,5,9,.72);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+    animation:crIn .35s ease}
+  #crOverlay.show{display:flex}
+  @keyframes crIn{from{opacity:0}to{opacity:1}}
+  #crBox{
+    width:min(420px,calc(100vw - 40px));border-radius:16px;padding:24px 24px 20px;
+    color:var(--ink);text-align:center;
+    background:linear-gradient(165deg,rgba(28,29,37,.94),rgba(12,14,20,.95) 60%,rgba(9,10,15,.96));
+    border:1px solid rgba(224,178,92,.34);
+    box-shadow:0 26px 70px rgba(0,0,0,.7),inset 0 0 40px rgba(224,178,92,.07);
+    animation:crPop .4s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes crPop{from{transform:scale(.9) translateY(12px);opacity:0}to{transform:none;opacity:1}}
+  #crBox h3{margin:0 0 4px;font:700 20px "Bebas Neue",Impact,sans-serif;
+    letter-spacing:3px;color:var(--gold-bright);text-shadow:0 0 18px rgba(255,205,90,.4)}
+  #crBox .crSub{font-size:12.5px;color:#a89771;line-height:1.55;margin:0 0 16px}
+  #crName{
+    width:100%;background:rgba(8,9,14,.7);color:var(--gold-bright);
+    border:1px solid rgba(224,178,92,.4);border-radius:10px;padding:12px 14px;
+    font:600 16px "Inter",sans-serif;text-align:center;letter-spacing:.5px}
+  #crName:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,178,92,.16)}
+  #crName::placeholder{color:#7a6b4c;font-weight:400}
+  #crSave{
+    display:block;width:100%;margin-top:12px;cursor:pointer;border:none;border-radius:10px;
+    padding:13px 0;font:700 14px "Inter",sans-serif;letter-spacing:1.2px;color:#221903;
+    background:linear-gradient(135deg,#ecc15a,#caa03a 55%,#a87f27);
+    box-shadow:0 6px 20px rgba(236,193,90,.3);transition:.2s}
+  #crSave:hover{filter:brightness(1.1);box-shadow:0 8px 28px rgba(236,193,90,.45)}
+  #crSave:disabled{opacity:.5;cursor:not-allowed}
+  #crCancel{margin-top:9px;background:none;border:none;color:#8d7c54;cursor:pointer;
+    font:500 12px "Inter",sans-serif;letter-spacing:.6px;text-decoration:underline;padding:4px}
+  #crCancel:hover{color:var(--gold-bright)}
+  #crStatus{min-height:15px;margin-top:10px;font-size:11.5px;color:#a89771}
 </style>
 </head>
 <body>
@@ -101,7 +148,7 @@
   </section>
 
   <section>
-    <div class="rowlbl"><span>КРУГОВ</span><input id="cntn" type="number" min="1" max="61" step="1" value="19"></div>
+    <div class="rowlbl"><span>КРУГОВ</span><input id="cntn" type="number" min="1" step="1" value="19"></div>
     <button id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
     <button id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
   </section>
@@ -123,13 +170,12 @@
       <div class="checks">
         <label><input id="mOn" type="checkbox"> построение из сегментов</label>
       </div>
-      <div class="chipLbl" style="margin-top:7px">ЭЛЕМЕНТ</div>
+      <div class="chipLbl" style="margin-top:7px">СЛОЙ</div>
       <div class="chipWrap" id="mtxTypes">
         <button class="chip" data-t="circle" type="button">круг</button>
-        <button class="chip" data-t="petal" type="button">лепесток</button>
-        <button class="chip" data-t="leaf" type="button">листок</button>
-        <button class="chip" data-t="spike" type="button">шип</button>
         <button class="chip" data-t="lens" type="button">линза</button>
+        <button class="chip" data-t="leaf" type="button">листок·шип</button>
+        <button class="chip" data-t="petal" type="button">лепесток</button>
       </div>
       <div class="zoomrow" style="margin-top:7px">
         <button id="mtxClear" class="zbtn" type="button">ОЧИСТИТЬ</button>
@@ -154,6 +200,7 @@
         <label><input id="cLabels" type="checkbox" checked> буквенные обозначения</label>
         <label><input id="cFx" type="checkbox" checked> золотые частицы</label>
         <label><input id="cGlow" type="checkbox" checked> свечение</label>
+        <label><input id="cSound" type="checkbox" checked> звук отрисовки</label>
       </section>
       <section style="margin-bottom:2px">
         <div class="rowlbl"><span>ПРОЗРАЧНОСТЬ ПАНЕЛИ</span><span class="val" id="opV">0.66</span></div>
@@ -167,14 +214,33 @@
     <button id="resetBtn" class="zbtn" type="button">СБРОС</button>
   </div>
 
+  <div class="zoomrow" style="margin-top:6px">
+    <button id="saveBtn" class="zbtn" type="button">СОХРАНИТЬ</button>
+    <button id="loadBtn" class="zbtn" type="button">ЗАГРУЗИТЬ</button>
+  </div>
+  <input id="loadFile" type="file" accept=".json,application/json" style="display:none">
+
+  <button id="crystalBtn" class="crystal-btn" type="button">КРИСТАЛЛИЗАЦИЯ</button>
+
   <div class="sep"></div>
   <div class="stat">
     <span id="stCount">кругов: <b>0</b></span>
     <span id="stCands">точек: <b>0</b></span>
     <span id="stZoom">масштаб: <b>100%</b></span>
   </div>
-  <div id="status" class="tip">клик по точке — создать круг · колесо — зум · перетаскивание — сдвиг · тяните золотое кольцо в центре, чтобы повернуть фигуру</div>
+  <div id="status" class="tip">клик по точке — создать круг · колесо — зум · перетаскивание — сдвиг · тяните золотое кольцо в центре, чтобы повернуть фигуру · при масштабе менее 50% снаружи появляется круговая стрелка поворота</div>
 </aside>
+
+<div id="crOverlay">
+  <div id="crBox">
+    <h3>КРИСТАЛЛИЗАЦИЯ</h3>
+    <p class="crSub">Цветок завершён и зафиксирован.<br>Введите имя — сохраним снимок 9:16 с вашим цветком.</p>
+    <input id="crName" type="text" maxlength="40" placeholder="Ваше имя" autocomplete="off" spellcheck="false">
+    <button id="crSave" type="button">Сохранить цветок</button>
+    <button id="crCancel" type="button">Отмена</button>
+    <div id="crStatus"></div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -188,6 +254,7 @@ let scale = 90;          // текущий эффективный масштаб
 
 const RIGHT_ZONE = 384;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const MAX_UNITS = 1500; // практически безлимитно: защита от зависания (подбор точек O(n³)) при гигантских значениях
 
 const state = {
   units: [],            // {x,y (unit r=1), letter, parents:[idx]|null, born, dur, src}
@@ -209,7 +276,10 @@ const state = {
   silence: false,       // первый клик гасит автовращение без создания круга
   gVer: 0,              // версия геометрии (для кэша кандидатов матрицы)
   mtx: { on: false, type: "circle", els: [] },
-  opts: { fill: true, axes: true, lens: false, labels: true, fx: true, glow: true }
+  lastAct: 0,           // время последней активности пользователя (мс) — для затухания кольца поворота
+  ringA: 0,             // текущая прозрачность кольца поворота 0..1 (плавное появление/затухание)
+  crystal: { on: false, t0: 0 }, // кристаллизация: обводка периметра + скрытые оси
+  opts: { fill: true, axes: true, lens: false, labels: true, fx: true, glow: true, sound: true }
 };
 
 /* ---------------- геометрия (unit: радиус 1) ---------------- */
@@ -347,6 +417,35 @@ function onHandle(mx, my){
   return Math.hypot(mx - h.x, my - h.y) <= 30;
 }
 
+/* манипулятор поворота — полупрозрачная круговая стрелка вокруг фигуры
+   (показывается при масштабе менее 50%, гаснет после 3 секунд простоя) */
+const ROT_RING_MIN_SCALE = .5;
+const ROT_RING_GRAB = 16; // px — ширина зоны захвата кольца
+const ROT_RING_IDLE = 3000;  // мс простоя до плавного исчезновения
+const ROT_RING_FADE = 220;   // мс — постоянная времени появления/затухания
+let frameDt = 16;            // мс между кадрами (для плавной анимации)
+function noteAct(){ state.lastAct = performance.now(); }
+function rotRingVisible(){
+  return state.units.length > 0 && state.zoom < ROT_RING_MIN_SCALE;
+}
+function rotRingUnitR(){
+  let m = 0;
+  for (const u of state.units){
+    const d = Math.hypot(u.x - state.rotC.x, u.y - state.rotC.y);
+    if (d > m) m = d;
+  }
+  return m + 1.15;
+}
+function rotRingPx(){
+  const h = handleAt();
+  return { cx: h.x, cy: h.y, r: rotRingUnitR() * scale };
+}
+function onRotRing(mx, my){
+  if (!rotRingVisible() || state.ringA < .2) return false;
+  const { cx, cy, r } = rotRingPx();
+  return Math.abs(Math.hypot(mx - cx, my - cy) - r) <= ROT_RING_GRAB;
+}
+
 /* ---------------- макет, автомасштаб, зум ---------------- */
 
 function availBox(){
@@ -381,6 +480,7 @@ function fitView(){
   updateZoomLabel();
 }
 function zoomBy(factor, cx, cy){
+  noteAct();
   const sOld = scale;
   const ux = (cx - origin.x) / sOld, uy = (cy - origin.y) / sOld;
   state.zoom = clamp(state.zoom * factor, 0.15, 4);
@@ -487,7 +587,7 @@ function drawTitle(){
   ctx.shadowColor = "rgba(255,200,90,.45)";
   ctx.shadowBlur = 16;
   ctx.fillStyle = g;
-  ctx.fillText("ЦВЕТОК ЖИЗНИ", tx, ty);
+  ctx.fillText("Flower of Life", tx, ty);
   ctx.shadowBlur = 0;
   ctx.restore();
 }
@@ -541,7 +641,7 @@ function bumpGeom(){ state.gVer++; }
 
 async function runAuto(){
   if (state.autoTok){ cancelAuto(); return; }
-  const count = Math.max(1, Math.min(61, parseInt($("cntn").value, 10) || 19));
+  const count = Math.max(1, Math.min(MAX_UNITS, parseInt($("cntn").value, 10) || 19));
   const plan = buildAutoOrder(count);
   state.units = [];
   refreshPivot();
@@ -582,6 +682,7 @@ async function runAuto(){
       captionFor(v);
       i++;
     }
+    playDrawSound();
     updateStat();
     await sleep(u.dur + 190);
   }
@@ -617,6 +718,7 @@ async function replayBuild(){
     state.units.push(u);
     refreshPivot();
     captionFor(u);
+    playDrawSound();
     updateStat();
     await sleep(u.dur + 190);
   }
@@ -659,9 +761,11 @@ function computeHover(){
 }
 
 function manualAdd(){
+  if (state.crystal.on) return false;   // цветок зафиксирован кристаллизацией
   if (!state.hover) return false;
-  if (state.units.length >= 61) return false;
+  if (state.units.length >= MAX_UNITS) return false;
   if (state.autoTok) return false;
+  noteAct();
   const h = state.hover;
   const u = {
     x: h.x, y: h.y, parents: h.parents,
@@ -672,6 +776,7 @@ function manualAdd(){
   refreshPivot();
   bumpGeom();
   captionFor(u);
+  playDrawSound();
   updateStat();
   setStatus("создана окружность " + u.letter);
   return true;
@@ -848,6 +953,44 @@ function drawAxes(){
   ctx.restore();
 }
 
+/* ---------------- кристаллизация: пробег контура ---------------- */
+
+function drawCrystallize(){
+  if (!state.units.length) return;
+  const t = performance.now();
+  const head = ((t - state.crystal.t0) / 1000) * 1.5;  // рад/с — плавный непрерывный пробег
+  const tail = 1.05;                                  // длина «хвоста» кометы, рад
+  const lw = Math.max(3.5, scale * .055);             // жирный контур
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = "rgba(255,205,90,.95)";
+  for (const u of state.units){
+    const P = toPx(u);
+    // затухающий хвост
+    ctx.shadowBlur = 20;
+    ctx.strokeStyle = "rgba(255,224,150,.26)";
+    ctx.lineWidth = lw * 1.5;
+    ctx.beginPath();
+    ctx.arc(P.x, P.y, scale, head - tail, head - tail * .45, false);
+    ctx.stroke();
+    // основной пробег — жирный светящийся контур
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = "rgba(255,238,190,.95)";
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.arc(P.x, P.y, scale, head - tail * .45, head, false);
+    ctx.stroke();
+    // яркая голова пробега
+    const hx = P.x + Math.cos(head) * scale;
+    const hy = P.y + Math.sin(head) * scale;
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = "rgba(255,252,232,1)";
+    ctx.beginPath(); ctx.arc(hx, hy, Math.max(2, lw * .8), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawHover(){
   ctx.save();
   for (const c of state.allCands){
@@ -964,6 +1107,52 @@ function drawRotateHandle(){
   ctx.restore();
 }
 
+function drawRotRing(){
+  // целевая прозрачность: кольцо видно, пока пользователь активен (3с окно);
+  // при бездействии плавно гаснет, при активности снова проявляется
+  const idle = performance.now() - state.lastAct;
+  const active = (idle < ROT_RING_IDLE) || (state.pointer && state.pointer.rot);
+  const want = (rotRingVisible() && active) ? 1 : 0;
+  const k = 1 - Math.exp(-Math.max(8, frameDt) / ROT_RING_FADE);
+  state.ringA += (want - state.ringA) * k;
+  // прилипание к краям только в сторону цели, иначе на малых шагах кадра
+  // значение не может выйти из нуля
+  if (want === 0 && state.ringA < .01) state.ringA = 0;
+  if (want === 1 && state.ringA > .99) state.ringA = 1;
+  const A = state.ringA;
+  if (A <= 0) return;
+  const { cx, cy, r } = rotRingPx();
+  const t = performance.now();
+  const p = .55 + .35 * Math.sin(t * .0022);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,214,110," + ((.03 + .05 * p) * A).toFixed(3) + ")";
+  ctx.lineWidth = ROT_RING_GRAB * 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,216,120," + (.4 * p * A).toFixed(3) + ")";
+  ctx.lineWidth = 1.3;
+  ctx.setLineDash([2, 6]);
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  const a0 = state.rot - .8, a1 = state.rot + .45;
+  ctx.strokeStyle = "rgba(255,228,155," + (.95 * A).toFixed(3) + ")";
+  ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke();
+  ctx.fillStyle = "rgba(255,228,155," + (.95 * A).toFixed(3) + ")";
+  const ringTip = (ang, sd) => {
+    const tx = cx + Math.cos(ang) * r, ty = cy + Math.sin(ang) * r;
+    const txp = -Math.sin(ang), typ = Math.cos(ang);
+    const nxp = -typ, nyp = txp;
+    ctx.beginPath();
+    ctx.moveTo(tx + sd * txp * 3, ty + sd * typ * 3);
+    ctx.lineTo(tx - sd * txp * 9 + nxp * 5, ty - sd * typ * 9 + nyp * 5);
+    ctx.lineTo(tx - sd * txp * 9 - nxp * 5, ty - sd * typ * 9 - nyp * 5);
+    ctx.closePath(); ctx.fill();
+  };
+  ringTip(a1, 1);
+  ringTip(a0, -1);
+  ctx.restore();
+}
+
 const ARROW_CURSOR = "url(\"data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M2%202%20L19%208%20L11%209%20L8%2017%20Z'%20fill='%23ffe9b0'%20stroke='%231b1204'%20stroke-width='1.4'%20stroke-linejoin='round'/%3E%3C/svg%3E\") 2 2, pointer";
 
 /* ================= матрица цветка (выделение сегментов) ================= */
@@ -1002,73 +1191,194 @@ function ptArcDist(ar, mx, my){
   return Math.min(Math.hypot(mx - e1x, my - e1y), Math.hypot(mx - e2x, my - e2y));
 }
 
-const MTX_TYPES = { circle: "круг", lens: "линза", petal: "лепесток", leaf: "листок", spike: "шип" };
+const MTX_TYPES = { circle: "круг", lens: "линза", leaf: "листок", spike: "шип", petal: "лепесток" };
+const LAYER_TYPES = { circle: ["circle"], lens: ["lens"], leaf: ["leaf", "spike"], petal: ["petal"] };
+const LAYER_NAMES = { circle: "круг", lens: "линза", leaf: "листок·шип", petal: "лепесток" };
+const LENS_TOL = 0.02;
 
-let candCache = { ver: -1, list: [] };
+let candCache = { ver: -1, list: null };
 function candidates(){
   if (candCache.ver !== state.gVer){
     candCache.list = buildCandidates();
     candCache.ver = state.gVer;
+    remapMtxEls();
   }
   return candCache.list;
 }
+function remapMtxEls(){
+  if (!state.mtx.els.length) return;
+  const all = [];
+  for (const t in candCache.list) all.push(...candCache.list[t]);
+  const byKey = new Map();
+  for (const el of all) byKey.set(elKey(el), el);
+  state.mtx.els = state.mtx.els.map(el => byKey.get(elKey(el)) || el);
+}
 
 function buildCandidates(){
-  const out = [];
-  const n = state.units.length;
+  const U = state.units;
+  const n = U.length;
+  const out = { circle: [], lens: [], leaf: [], spike: [], petal: [] };
   if (!n) return out;
+
   for (let i = 0; i < n; i++)
-    out.push({ type: "circle", idx: i });
+    out.circle.push({ type: "circle", idx: i });
+
+  // слой «линза»: пара кругов, когда окружность второго проходит через центр первого (d = 1)
   for (let i = 0; i < n; i++)
     for (let j = i + 1; j < n; j++){
-      const A = state.units[i], B = state.units[j];
+      const A = U[i], B = U[j];
       const d = Math.hypot(A.x - B.x, A.y - B.y);
-      if (d < 0.05 || d > 2 - 1e-6) continue;
+      if (Math.abs(d - 1) > LENS_TOL) continue;
       const pts = interPts(A.x, A.y, B.x, B.y);
       if (pts.length < 2) continue;
       const arcA = arcToward(A, pts[0], pts[1], B);
       const arcB = revArc(arcToward(B, pts[0], pts[1], A));
-      const farA = arcToward(A, pts[0], pts[1], { x: 2 * A.x - B.x, y: 2 * A.y - B.y });
-      const farB = revArc(arcToward(B, pts[0], pts[1], { x: 2 * B.x - A.x, y: 2 * B.y - A.y }));
-      out.push({ type: "lens", a: i, b: j, arcs: [arcA, arcB] });
-      out.push({ type: "petal", a: i, b: j, arcs: [farA, farB] });
+      out.lens.push({ type: "lens", a: i, b: j, arcs: [arcA, arcB] });
     }
+
+  // слой «листок»: общее перекрытие трёх кругов (листок) и три шипа вокруг него
   for (let i = 0; i < n; i++)
     for (let j = i + 1; j < n; j++){
-      const A = state.units[i], B = state.units[j];
-      if (Math.hypot(A.x - B.x, A.y - B.y) > 2 - 1e-6) continue;
+      if (Math.hypot(U[i].x - U[j].x, U[i].y - U[j].y) > 2 - 1e-6) continue;
       for (let k = j + 1; k < n; k++){
-        const C = state.units[k];
-        const dBC = Math.hypot(B.x - C.x, B.y - C.y);
-        const dCA = Math.hypot(C.x - A.x, C.y - A.y);
-        if (dBC > 2 - 1e-6 || dCA > 2 - 1e-6) continue;
+        const A = U[i], B = U[j], C = U[k];
+        if (Math.hypot(B.x - C.x, B.y - C.y) > 2 - 1e-6) continue;
+        if (Math.hypot(C.x - A.x, C.y - A.y) > 2 - 1e-6) continue;
         const cx = (A.x + B.x + C.x) / 3, cy = (A.y + B.y + C.y) / 3;
-        const inA = Math.hypot(A.x - cx, A.y - cy) < 1 - 1e-6;
-        const inB = Math.hypot(B.x - cx, B.y - cy) < 1 - 1e-6;
-        const inC = Math.hypot(C.x - cx, C.y - cy) < 1 - 1e-6;
-        const type = (inA && inB && inC) ? "leaf" : (!inA && !inB && !inC) ? "spike" : null;
-        if (!type) continue;
+        if (Math.hypot(A.x - cx, A.y - cy) >= 1 - 1e-6) continue;
+        if (Math.hypot(B.x - cx, B.y - cy) >= 1 - 1e-6) continue;
+        if (Math.hypot(C.x - cx, C.y - cy) >= 1 - 1e-6) continue;
         const qMap = {};
-        const q = (u, v) => {
+        const vIn = (u, v, w) => {
           const key = u < v ? u + "_" + v : v + "_" + u;
           if (qMap[key] === undefined){
-            const p = interPts(state.units[u].x, state.units[u].y,
-                               state.units[v].x, state.units[v].y);
-            qMap[key] = Math.hypot(p[0].x - cx, p[0].y - cy) <= Math.hypot(p[1].x - cx, p[1].y - cy)
+            const p = interPts(U[u].x, U[u].y, U[v].x, U[v].y);
+            const W = U[w];
+            qMap[key] = Math.hypot(p[0].x - W.x, p[0].y - W.y) <= Math.hypot(p[1].x - W.x, p[1].y - W.y)
               ? p[0] : p[1];
           }
           return qMap[key];
         };
-        const ab = q(i, j), ac = q(i, k), bc = q(j, k);
+        const qOut = (u, v, w) => {
+          const p = interPts(U[u].x, U[u].y, U[v].x, U[v].y);
+          const W = U[w];
+          return Math.hypot(p[0].x - W.x, p[0].y - W.y) <= Math.hypot(p[1].x - W.x, p[1].y - W.y)
+            ? p[1] : p[0];
+        };
+        const ab = vIn(i, j, k), ac = vIn(i, k, j), bc = vIn(j, k, i);
         const Cpt = { x: cx, y: cy };
-        const arcs = [
-          arcToward(state.units[j], bc, ab, Cpt),
-          arcToward(state.units[i], ab, ac, Cpt),
-          arcToward(state.units[k], ac, bc, Cpt)
-        ];
-        out.push({ type, i, j, k, arcs });
+        out.leaf.push({ type: "leaf", i, j, k, arcs: [
+          arcToward(U[j], bc, ab, Cpt),
+          arcToward(U[i], ab, ac, Cpt),
+          arcToward(U[k], ac, bc, Cpt)
+        ]});
+        const abO = qOut(i, j, k), acO = qOut(i, k, j), bcO = qOut(j, k, i);
+        const avoid = (Uu, p, q, pt) => {
+          const av = Math.atan2(pt.y - Uu.y, pt.x - Uu.x);
+          const a1 = arcToward(Uu, p, q, pt);
+          if (arcInSpan(a1.start, a1.end, a1.ccw, av))
+            return arcToward(Uu, p, q, { x: 2 * Uu.x - pt.x, y: 2 * Uu.y - pt.y });
+          return a1;
+        };
+        out.spike.push({ type: "spike", a: i, b: j, c: k, arcs: [
+          avoid(U[i], ac, abO, ab),
+          avoid(U[j], abO, bc, ab),
+          revArc(arcToward(U[k], ac, bc, Cpt))
+        ]});
+        out.spike.push({ type: "spike", a: i, b: k, c: j, arcs: [
+          avoid(U[i], ab, acO, ac),
+          avoid(U[k], acO, bc, ac),
+          revArc(arcToward(U[j], ab, bc, Cpt))
+        ]});
+        out.spike.push({ type: "spike", a: j, b: k, c: i, arcs: [
+          avoid(U[j], ab, bcO, bc),
+          avoid(U[k], bcO, ac, bc),
+          revArc(arcToward(U[i], ab, ac, Cpt))
+        ]});
       }
     }
+
+  // слой «лепесток»: область одновременного перекрытия четырёх кругов
+  // («кошачий зрачок» в центре линзы); граница — дуги участвующих кругов (2–4)
+  const shiftAng = (a, ref) => {
+    while (a - ref > Math.PI) a -= Math.PI * 2;
+    while (a - ref < -Math.PI) a += Math.PI * 2;
+    return a;
+  };
+  const regionOf = (cids, F) => {
+    const arcs = [];
+    for (const c of cids){
+      const C = U[c];
+      const tF = Math.atan2(F.y - C.y, F.x - C.x);
+      let lo = -Math.PI, hi = Math.PI, ok = true;
+      for (const d of cids){
+        if (d === c) continue;
+        const D = U[d];
+        const cd = Math.hypot(D.x - C.x, D.y - C.y);
+        if (cd >= 2 - 1e-9){ ok = false; break; }
+        const dir = Math.atan2(D.y - C.y, D.x - C.x);
+        const al = Math.acos(Math.max(-1, Math.min(1, cd / 2)));
+        const o1 = shiftAng(dir - al, tF), o2 = shiftAng(dir + al, tF);
+        lo = Math.max(lo, Math.min(o1, o2));
+        hi = Math.min(hi, Math.max(o1, o2));
+      }
+      const span = hi - lo;
+      if (!ok || span < 2e-3 || span > Math.PI) continue;
+      const p1 = { x: C.x + Math.cos(lo), y: C.y + Math.sin(lo) };
+      const p2 = { x: C.x + Math.cos(hi), y: C.y + Math.sin(hi) };
+      const cw = { x: C.x, y: C.y, start: lo, end: hi, ccw: false };
+      const ccw = { x: C.x, y: C.y, start: lo, end: hi, ccw: true };
+      const mid = (a) => ({ x: a.x + Math.cos((a.start + a.end) / 2), y: a.y + Math.sin((a.start + a.end) / 2) });
+      const m1 = mid(cw), m2 = mid(ccw);
+      arcs.push(Math.hypot(m1.x - F.x, m1.y - F.y) < Math.hypot(m2.x - F.x, m2.y - F.y) ? cw : ccw);
+    }
+    if (arcs.length < 2) return null;
+    const endPt = (ar) => ({ x: ar.x + Math.cos(ar.end), y: ar.y + Math.sin(ar.end) });
+    const startPt = (ar) => ({ x: ar.x + Math.cos(ar.start), y: ar.y + Math.sin(ar.start) });
+    const near = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 1e-6;
+    const order = [arcs[0]];
+    const used = [0];
+    let tail = endPt(arcs[0]);
+    for (let step = 0; step < arcs.length - 1; step++){
+      let found = -1;
+      for (let k = 0; k < arcs.length; k++){
+        if (used.indexOf(k) >= 0) continue;
+        if (near(startPt(arcs[k]), tail)){ found = k; break; }
+        if (near(endPt(arcs[k]), tail)){
+          arcs[k] = revArc(arcs[k]);
+          found = k; break;
+        }
+      }
+      if (found < 0) return null;
+      order.push(arcs[found]);
+      used.push(found);
+      tail = endPt(arcs[found]);
+    }
+    if (!near(endPt(order[order.length - 1]), startPt(order[0]))) return null;
+    return order;
+  };
+  const byCent = new Map();
+  const centKey = (x, y) => Math.round(x * 1e5) + "," + Math.round(y * 1e5);
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++)
+      for (let k = j + 1; k < n; k++)
+        for (let l = k + 1; l < n; l++){
+          const A = U[i], B = U[j], C = U[k], D = U[l];
+          const gx = (A.x + B.x + C.x + D.x) / 4, gy = (A.y + B.y + C.y + D.y) / 4;
+          if (Math.hypot(A.x - gx, A.y - gy) >= 1 - 1e-6) continue;
+          if (Math.hypot(B.x - gx, B.y - gy) >= 1 - 1e-6) continue;
+          if (Math.hypot(C.x - gx, C.y - gy) >= 1 - 1e-6) continue;
+          if (Math.hypot(D.x - gx, D.y - gy) >= 1 - 1e-6) continue;
+          const arcs = regionOf([i, j, k, l], { x: gx, y: gy });
+          if (!arcs) continue;
+          const key = centKey(gx, gy);
+          const prev = byCent.get(key);
+          if (!prev || arcs.length > prev.arcs.length)
+            byCent.set(key, { a: i, b: j, c: k, d: l, arcs: arcs });
+        }
+  for (const petal of byCent.values())
+    out.petal.push({ type: "petal", a: petal.a, b: petal.b, c: petal.c, d: petal.d, arcs: petal.arcs });
+
   return out;
 }
 
@@ -1091,12 +1401,12 @@ function buildPath(el){
 }
 
 function elInside(el, U){
-  const u = (i) => state.units[i];
-  if (el.type === "lens") return Math.hypot(U.x - u(el.a).x, U.y - u(el.a).y) < 1 &&
-                                Math.hypot(U.x - u(el.b).x, U.y - u(el.b).y) < 1;
-  if (el.type === "leaf") return Math.hypot(U.x - u(el.i).x, U.y - u(el.i).y) < 1 &&
-                                Math.hypot(U.x - u(el.j).x, U.y - u(el.j).y) < 1 &&
-                                Math.hypot(U.x - u(el.k).x, U.y - u(el.k).y) < 1;
+  const u = (idx) => state.units[idx];
+  const inD = (idx) => Math.hypot(U.x - u(idx).x, U.y - u(idx).y) < 1;
+  if (el.type === "lens") return inD(el.a) && inD(el.b);
+  if (el.type === "leaf") return inD(el.i) && inD(el.j) && inD(el.k);
+  if (el.type === "spike") return inD(el.a) && inD(el.b) && !inD(el.c);
+  if (el.type === "petal") return inD(el.a) && inD(el.b) && inD(el.c) && inD(el.d);
   return false;
 }
 
@@ -1104,7 +1414,9 @@ function elDist(el, mx, my){
   const U = toUnit(mx, my);
   if (el.type === "circle"){
     const c = state.units[el.idx];
-    return Math.abs(Math.hypot(U.x - c.x, U.y - c.y) - 1) * scale;
+    const dd = Math.hypot(U.x - c.x, U.y - c.y);
+    if (dd > MTX_CIRCLE_HALF) return Infinity;
+    return dd * scale;
   }
   if (elInside(el, U)) return 0;
   let best = Infinity;
@@ -1116,27 +1428,36 @@ function elDist(el, mx, my){
 }
 
 const MTX_SNAP = 16;
+const MTX_CIRCLE_HALF = 0.5; // радиус круга = 1; зона чувствительности — ядро до половины радиуса
 function computeHoverEl(){
   state.hoverEl = null;
   if (!state.mtx.on || !state.mouse || !state.units.length) return;
+  const types = LAYER_TYPES[state.mtx.type] || ["circle"];
   const list = candidates();
   let best = Infinity, be = null;
-  for (const el of list){
-    if (el.type !== state.mtx.type) continue;
-    const d = elDist(el, state.mouse.x, state.mouse.y);
-    if (d < best){ best = d; be = el; }
-  }
-  if (best < MTX_SNAP) state.hoverEl = be;
+  for (const t of types)
+    for (const el of list[t]){
+      const d = elDist(el, state.mouse.x, state.mouse.y);
+      if (d < best){ best = d; be = el; }
+    }
+  const limit = be && be.type === "circle" ? MTX_CIRCLE_HALF * scale : MTX_SNAP;
+  if (best < limit) state.hoverEl = be;
 }
 
 function elLabel(el){
   const L = state.units.map(u => u.letter);
-  if (el.type === "circle") return MTX_TYPES.circle + " " + L[el.idx];
-  if (el.type === "lens" || el.type === "petal") return MTX_TYPES[el.type] + " " + L[el.a] + "–" + L[el.b];
-  return MTX_TYPES[el.type] + " " + L[el.i] + "." + L[el.j] + "." + L[el.k];
+  switch (el.type){
+    case "circle": return MTX_TYPES.circle + " " + L[el.idx];
+    case "lens": return MTX_TYPES.lens + " " + L[el.a] + "–" + L[el.b];
+    case "leaf": return MTX_TYPES.leaf + " " + L[el.i] + "." + L[el.j] + "." + L[el.k];
+    case "spike": return MTX_TYPES.spike + " " + L[el.a] + "–" + L[el.b] + " (вне " + L[el.c] + ")";
+    case "petal": return MTX_TYPES.petal + " " + L[el.a] + "." + L[el.b] + "." + L[el.c] + "." + L[el.d];
+  }
+  return el.type;
 }
 
 function toggleSelect(el){
+  noteAct();
   const idx = state.mtx.els.indexOf(el);
   if (idx >= 0){
     state.mtx.els.splice(idx, 1);
@@ -1145,34 +1466,51 @@ function toggleSelect(el){
     state.mtx.els.push(el);
     setStatus("сегмент добавлен: " + elLabel(el));
   }
+  playDrawSound();
   $("mCount").textContent = state.mtx.els.length;
 }
 
 function drawMatrix(){
-  const t = performance.now();
   ctx.save();
   ctx.lineJoin = "round";
+  // при кристаллизации выделение — часть построения: кандидаты и наведение скрыты
+  const fixed = state.crystal.on;
+  if (state.mtx.on && !fixed){
+    const types = LAYER_TYPES[state.mtx.type] || ["circle"];
+    const list = candidates();
+    ctx.strokeStyle = "rgba(255,216,120,.14)";
+    ctx.lineWidth = 1;
+    for (const t of types){
+      for (const el of list[t]){
+        const p = buildPath(el);
+        ctx.stroke(p);
+      }
+    }
+  }
   for (const el of state.mtx.els){
     const p = buildPath(el);
-    if (state.opts.glow){ ctx.shadowColor = "rgba(255,225,140,.8)"; ctx.shadowBlur = 14; }
-    ctx.fillStyle = "rgba(255,224,140,.20)";
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,225,140,.8)"; ctx.shadowBlur = fixed ? 18 : 14; }
+    ctx.fillStyle = fixed ? "rgba(255,224,140,.26)" : "rgba(255,224,140,.20)";
     ctx.fill(p);
     ctx.shadowBlur = 0;
     ctx.strokeStyle = "rgba(255,238,185,.95)";
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = fixed ? 2.8 : 2.4;
     ctx.stroke(p);
   }
-  if (state.hoverEl){
+  if (state.hoverEl && !fixed){
     const p = buildPath(state.hoverEl);
     ctx.fillStyle = "rgba(255,225,140,.13)";
     ctx.fill(p);
-    ctx.strokeStyle = "rgba(255,240,195,.7)";
-    ctx.lineWidth = 1.7;
-    ctx.setLineDash([6, 7]);
-    ctx.lineDashOffset = -t * .02;
+    ctx.strokeStyle = "rgba(255,248,215,.9)";
+    ctx.lineWidth = 1.6;
     ctx.stroke(p);
-    ctx.setLineDash([]);
-    ctx.lineDashOffset = 0;
+    if (state.opts.labels && state.mouse){
+      ctx.font = "11px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,238,190,.95)";
+      if (state.opts.glow){ ctx.shadowColor = "rgba(255,210,110,.8)"; ctx.shadowBlur = 6; }
+      ctx.fillText(elLabel(state.hoverEl), state.mouse.x, state.mouse.y - 14);
+    }
   }
   ctx.restore();
 }
@@ -1181,6 +1519,7 @@ function updateCursor(){
   if (state.pointer){ scene.style.cursor = "grabbing"; return; }
   if (!state.mouse){ scene.style.cursor = ""; return; }
   if (onHandle(state.mouse.x, state.mouse.y)){ scene.style.cursor = "grab"; return; }
+  if (onRotRing(state.mouse.x, state.mouse.y)){ scene.style.cursor = "grab"; return; }
   if (state.hover){ scene.style.cursor = ARROW_CURSOR; return; }
   scene.style.cursor = "";
 }
@@ -1193,9 +1532,16 @@ function draw(){
   drawTitle();
   if (state.opts.fx) drawParticles();
   if (state.opts.lens) drawLens();
-  if (state.opts.axes) drawAxes();
-  drawRotateHandle();
-  for (const u of state.units) drawCircle(u);
+  // при кристаллизации оси и служебные элементы скрыты — остаётся чистый цветок
+  if (state.crystal.on){
+    for (const u of state.units) drawCircle(u);
+    drawCrystallize();
+  } else {
+    if (state.opts.axes) drawAxes();
+    drawRotateHandle();
+    drawRotRing();
+    for (const u of state.units) drawCircle(u);
+  }
   drawHover();
   drawMatrix();
   drawCaptions();
@@ -1215,7 +1561,7 @@ function updateChips(){
     b.classList.toggle("on", parseInt(b.dataset.n, 10) === v));
 }
 function applyCount(v){
-  v = clamp(parseInt(v, 10) || 19, 1, 61);
+  v = clamp(parseInt(v, 10) || 19, 1, MAX_UNITS);
   cntNum.value = v;
   const plan = buildAutoOrder(v);
   previewFit(plan);
@@ -1245,6 +1591,28 @@ $("cLens").addEventListener("change", e => state.opts.lens = e.target.checked);
 $("cLabels").addEventListener("change", e => state.opts.labels = e.target.checked);
 $("cFx").addEventListener("change", e => state.opts.fx = e.target.checked);
 $("cGlow").addEventListener("change", e => state.opts.glow = e.target.checked);
+$("cSound").addEventListener("change", e => state.opts.sound = e.target.checked);
+
+/* ---------------- звук отрисовки ---------------- */
+
+const SND_POOL = 3;
+const sndChans = Array.from({ length: SND_POOL }, () => new Audio("assets/krug.mp3"));
+let sndOk = false;
+let sndI = 0;
+for (const ch of sndChans){ ch.preload = "auto"; ch.volume = .6; }
+function unlockSnd(){
+  if (sndOk) return;
+  sndOk = true;
+  for (const ch of sndChans) ch.play().then(() => ch.pause()).catch(() => {});
+}
+function playDrawSound(){
+  if (!state.opts.sound || !sndOk) return;
+  const ch = sndChans[sndI++ % SND_POOL];
+  ch.pause();
+  ch.currentTime = 0;
+  ch.play().catch(() => {});
+}
+document.addEventListener("pointerdown", unlockSnd, { passive: true });
 
 document.querySelectorAll(".acc-head").forEach(btn =>
   btn.addEventListener("click", () => btn.parentElement.classList.toggle("open")));
@@ -1275,6 +1643,112 @@ $("resetBtn").addEventListener("click", () => {
   updateStat();
   setStatus("сброшено. задайте число кругов и нажмите «ПОСТРОИТЬ»");
 });
+
+/* ---------------- сохранение и загрузка фигуры ---------------- */
+
+function selIds(el){
+  switch (el.type){
+    case "circle": return [el.idx];
+    case "lens": return [el.a, el.b];
+    case "leaf": return [el.i, el.j, el.k];
+    case "spike": return [el.a, el.b, el.c];
+    case "petal": return [el.a, el.b, el.c, el.d];
+  }
+  return [];
+}
+function elKey(el){
+  return el.type + "|" + selIds(el).slice().sort((a, b) => a - b).join(",");
+}
+function syncOptsUi(){
+  $("cFill").checked = state.opts.fill;
+  $("cAxes").checked = state.opts.axes;
+  $("cLens").checked = state.opts.lens;
+  $("cLabels").checked = state.opts.labels;
+  $("cFx").checked = state.opts.fx;
+  $("cGlow").checked = state.opts.glow;
+  $("cSound").checked = state.opts.sound;
+}
+function saveFlower(){
+  if (!state.units.length){ setStatus("нечего сохранять — цветок пуст"); return; }
+  const data = {
+    version: 1,
+    rot: state.rot,
+    units: state.units.map(u => ({
+      x: u.x, y: u.y, letter: u.letter, parents: u.parents,
+      src: u.src || "loaded", dir: u.dir, dur: u.dur
+    })),
+    opts: { ...state.opts },
+    mtxType: state.mtx.type,
+    mtxEls: state.mtx.els.map(el => ({ type: el.type, ids: selIds(el) }))
+  };
+  const json = JSON.stringify(data, null, 1);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+  a.download = "цветок-жизни.json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 600);
+  setStatus("сохранено: " + state.units.length + " кругов, " + state.mtx.els.length + " сегментов матрицы");
+}
+function loadFlower(file){
+  const reader = new FileReader();
+  reader.onerror = () => setStatus("не удалось прочитать файл");
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.units) || !data.units.length){
+        setStatus("файл не похож на сохранение цветка жизни"); return;
+      }
+      cancelAuto();
+      stopSpin();
+      state.units = data.units.map(u => ({
+        x: u.x, y: u.y, letter: u.letter,
+        parents: Array.isArray(u.parents) ? u.parents : null,
+        src: u.src || "loaded", dir: u.dir || 1,
+        dur: u.dur || 600, born: performance.now()
+      }));
+      state.rot = typeof data.rot === "number" ? data.rot : 0;
+      if (data.opts && typeof data.opts === "object")
+        for (const k of Object.keys(state.opts))
+          if (data.opts[k] !== undefined) state.opts[k] = data.opts[k];
+      syncOptsUi();
+      state.mtx.els = [];
+      if (data.mtxType && LAYER_TYPES[data.mtxType]) state.mtx.type = data.mtxType;
+      refreshPivot();
+      bumpGeom();
+      if (Array.isArray(data.mtxEls)){
+        const list = candidates();
+        for (const d of data.mtxEls){
+          const arr = list[d.type];
+          if (!arr) continue;
+          const want = (d.ids || []).slice().sort((a, b) => a - b).join(",");
+          const found = arr.find(el => selIds(el).slice().sort((a, b) => a - b).join(",") === want);
+          if (found) state.mtx.els.push(found);
+        }
+      }
+      document.querySelectorAll("#mtxTypes .chip").forEach(c =>
+        c.classList.toggle("on", c.dataset.t === state.mtx.type));
+      previewFit(state.units);
+      center();
+      updateZoomLabel();
+      if (state.units.length) cntNum.value = state.units.length;
+      updateChips();
+      updateStat();
+      $("mCount").textContent = state.mtx.els.length;
+      setStatus("загружено: " + state.units.length + " кругов, " + state.mtx.els.length + " сегментов матрицы");
+    } catch (err){
+      setStatus("ошибка загрузки: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+$("saveBtn").addEventListener("click", saveFlower);
+$("loadBtn").addEventListener("click", () => $("loadFile").click());
+$("loadFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) loadFlower(f);
+  e.target.value = "";
+});
 $("chipRow").addEventListener("click", e => {
   const b = e.target.closest(".chip");
   if (!b) return;
@@ -1285,7 +1759,9 @@ $("chipRow").addEventListener("click", e => {
 $("mOn").addEventListener("change", e => {
   state.mtx.on = e.target.checked;
   state.hoverEl = null;
-  setStatus(state.mtx.on ? "режим матрицы: клик по сегменту добавляет/убирает его" : "построение цветка (круги)");
+  setStatus(state.mtx.on
+    ? "режим матрицы: ведите мышь — подсветится сегмент под курсором, клик добавляет/убирает его"
+    : "построение цветка (круги)");
 });
 $("mtxTypes").addEventListener("click", e => {
   const b = e.target.closest(".chip");
@@ -1294,7 +1770,7 @@ $("mtxTypes").addEventListener("click", e => {
   document.querySelectorAll("#mtxTypes .chip").forEach(c =>
     c.classList.toggle("on", c === b));
   state.hoverEl = null;
-  setStatus("элемент матрицы: " + MTX_TYPES[state.mtx.type] + " — наведите контур и кликните");
+  setStatus("слой: " + (LAYER_NAMES[b.dataset.t] || MTX_TYPES[b.dataset.t]) + " — показаны только элементы этого слоя");
 });
 $("mtxClear").addEventListener("click", () => {
   state.mtx.els = [];
@@ -1317,6 +1793,7 @@ window.addEventListener("keydown", e => {
 });
 
 scene.addEventListener("pointerdown", e => {
+  noteAct();
   state.mouse = { x: e.clientX, y: e.clientY };
   if (state.spin || state.autoTok){
     state.silence = true;
@@ -1327,11 +1804,12 @@ scene.addEventListener("pointerdown", e => {
   state.pointer = {
     x: e.clientX, y: e.clientY,
     ox: origin.x, oy: origin.y,
-    moved: 0, pan: false, rot: e.altKey || onHandle(e.clientX, e.clientY),
+    moved: 0, pan: false, rot: e.altKey || onHandle(e.clientX, e.clientY) || onRotRing(e.clientX, e.clientY),
     lastAng: Math.atan2(e.clientY - origin.y, e.clientX - origin.x)
   };
 });
 scene.addEventListener("pointermove", e => {
+  noteAct();
   state.mouse = { x: e.clientX, y: e.clientY };
   if (state.pointer){
     const dx = e.clientX - state.pointer.x, dy = e.clientY - state.pointer.y;
@@ -1369,6 +1847,269 @@ scene.addEventListener("pointerup", e => {
 scene.addEventListener("pointerleave", () => { state.mouse = null; });
 scene.addEventListener("pointercancel", () => { state.pointer = null; });
 
+/* ---------------- кристаллизация ---------------- */
+
+const CR_W = 1080, CR_H = 1920;          // снимок 9:16
+const CR_MONTHS = ["января","февраля","марта","апреля","мая","июня",
+                   "июля","августа","сентября","октября","ноября","декабря"];
+
+function crStamp(d){
+  const p = n => String(n).padStart(2, "0");
+  return p(d.getDate()) + " " + CR_MONTHS[d.getMonth()] + " " + d.getFullYear() +
+         ", " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function crWrap(g, text, cx, y, maxW, lh, font, fill, glow){
+  g.save();
+  g.font = font;
+  g.textAlign = "center";
+  g.textBaseline = "top";
+  g.fillStyle = fill;
+  if (glow){ g.shadowColor = "rgba(255,205,90,.4)"; g.shadowBlur = 14; }
+  const words = text.split(" ");
+  let line = "", ln = 0;
+  for (let i = 0; i < words.length; i++){
+    const probe = line ? line + " " + words[i] : words[i];
+    if (g.measureText(probe).width > maxW && line){
+      g.fillText(line, cx, y + ln * lh);
+      ln++; line = words[i];
+    } else line = probe;
+  }
+  if (line) g.fillText(line, cx, y + ln * lh);
+  g.restore();
+  return y + (ln + 1) * lh;
+}
+
+/* рисует готовый цветок на отдельном холсте 9:16 целиком в кадр */
+function renderSnapshot(name, when){
+  const cv = document.createElement("canvas");
+  cv.width = CR_W; cv.height = CR_H;
+  const g = cv.getContext("2d");
+
+  // фон
+  g.fillStyle = "#05060a";
+  g.fillRect(0, 0, CR_W, CR_H);
+  const bg = g.createRadialGradient(CR_W / 2, CR_H * .40, 0, CR_W / 2, CR_H * .40, CR_W * .95);
+  bg.addColorStop(0, "rgba(74,54,16,.42)");
+  bg.addColorStop(.42, "rgba(28,23,11,.20)");
+  bg.addColorStop(1, "rgba(4,5,9,0)");
+  g.fillStyle = bg;
+  g.fillRect(0, 0, CR_W, CR_H);
+
+  const PAD = 58;
+  const REG_TOP = 408, REG_BOT = 1568;
+  const regCx = CR_W / 2, regCy = (REG_TOP + REG_BOT) / 2;
+
+  // геометрия с учётом текущего поворота — как на экране
+  const cosR = Math.cos(state.rot), sinR = Math.sin(state.rot);
+  const pts = [];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const u of state.units){
+    const dx = u.x - state.rotC.x, dy = u.y - state.rotC.y;
+    const rx = dx * cosR - dy * sinR, ry = dx * sinR + dy * cosR;
+    pts.push({ x: rx, y: ry });
+    if (rx < minX) minX = rx; if (rx > maxX) maxX = rx;
+    if (ry < minY) minY = ry; if (ry > maxY) maxY = ry;
+  }
+  const bcx = (minX + maxX) / 2, bcy = (minY + maxY) / 2;
+  const need = Math.max(maxX - minX, maxY - minY) / 2 + 1;   // +радиус круга
+  const half = Math.min((CR_W - PAD * 2) / 2, (REG_BOT - REG_TOP) / 2) * .93;
+  const fit = half / need;
+  const PX = p => regCx + (p.x - bcx) * fit;
+  const PY = p => regCy + (p.y - bcy) * fit;
+
+  // заливка перекрытий
+  g.fillStyle = "rgba(255,205,90,.05)";
+  for (let i = 0; i < pts.length; i++){
+    g.beginPath(); g.arc(PX(pts[i]), PY(pts[i]), fit, 0, Math.PI * 2); g.fill();
+  }
+  // тонкий контур
+  g.strokeStyle = "rgba(255,214,110,.62)";
+  g.lineWidth = 1.8;
+  for (let i = 0; i < pts.length; i++){
+    g.beginPath(); g.arc(PX(pts[i]), PY(pts[i]), fit, 0, Math.PI * 2); g.stroke();
+  }
+  // кристаллизованный жирный светящийся контур
+  g.save();
+  g.shadowColor = "rgba(255,205,90,.95)";
+  g.shadowBlur = 20;
+  g.strokeStyle = "rgba(255,238,190,.95)";
+  g.lineWidth = 3.4;
+  for (let i = 0; i < pts.length; i++){
+    g.beginPath(); g.arc(PX(pts[i]), PY(pts[i]), fit, 0, Math.PI * 2); g.stroke();
+  }
+  g.restore();
+  // центры точек
+  g.fillStyle = "rgba(255,240,190,.85)";
+  for (let i = 0; i < pts.length; i++){
+    g.beginPath(); g.arc(PX(pts[i]), PY(pts[i]), Math.max(1.6, fit * .014), 0, Math.PI * 2); g.fill();
+  }
+  // сердцевина
+  g.save();
+  g.shadowColor = "rgba(255,205,90,.9)"; g.shadowBlur = 26;
+  g.fillStyle = "rgba(255,248,222,.95)";
+  g.beginPath(); g.arc(regCx, regCy, Math.max(3, fit * .022), 0, Math.PI * 2); g.fill();
+  g.restore();
+
+  // выделенные сегменты матрицы — часть построения, переносим их на снимок.
+  // buildPath() пользуется toPx/scale, поэтому временно переносим систему координат
+  // в масштаб снимка — тогда пути совпадают с экранными один в один.
+  if (state.mtx.els.length){
+    const sox = origin.x, soy = origin.y, ss = scale;
+    origin.x = regCx - bcx * fit;
+    origin.y = regCy - bcy * fit;
+    scale = fit;
+    g.save();
+    g.lineJoin = "round";
+    for (const el of state.mtx.els){
+      const p = buildPath(el);
+      g.fillStyle = "rgba(255,224,140,.24)";
+      g.fill(p);
+      g.shadowColor = "rgba(255,225,140,.85)";
+      g.shadowBlur = 16;
+      g.strokeStyle = "rgba(255,242,195,.98)";
+      g.lineWidth = 3;
+      g.stroke(p);
+      g.shadowBlur = 0;
+    }
+    g.restore();
+    origin.x = sox; origin.y = soy; scale = ss;
+  }
+
+  /* ---- заголовок ---- */
+  g.save();
+  g.textAlign = "center";
+  g.textBaseline = "top";
+  const tg = g.createLinearGradient(CR_W / 2 - 300, 0, CR_W / 2 + 300, 0);
+  tg.addColorStop(0, "#ffedbb"); tg.addColorStop(.5, "#ffd06e"); tg.addColorStop(1, "#b4832f");
+  g.font = "96px 'Bebas Neue', Impact, sans-serif";
+  try { g.letterSpacing = "14px"; } catch (e) {}
+  g.fillStyle = tg;
+  g.shadowColor = "rgba(255,200,90,.5)"; g.shadowBlur = 22;
+  g.fillText("Flower of Life", CR_W / 2, 84);
+  g.restore();
+
+  crWrap(g, "— " + name + " —", CR_W / 2, 208, CR_W - PAD * 2, 62,
+         "600 50px Georgia, serif", "rgba(255,232,170,.96)", true);
+  g.save();
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "30px 'Inter', system-ui, sans-serif";
+  g.fillStyle = "rgba(190,168,120,.9)";
+  g.fillText(crStamp(when), CR_W / 2, 282);
+  // разделитель
+  const lg = g.createLinearGradient(CR_W * .18, 0, CR_W * .82, 0);
+  lg.addColorStop(0, "rgba(224,178,92,0)");
+  lg.addColorStop(.5, "rgba(224,178,92,.55)");
+  lg.addColorStop(1, "rgba(224,178,92,0)");
+  g.fillStyle = lg;
+  g.fillRect(CR_W * .18, 344, CR_W * .64, 2);
+  g.restore();
+
+  /* ---- подпись снизу ---- */
+  crWrap(g, "Получи расшифровку цветка и узнай код своей счастливой реальности",
+         CR_W / 2, 1660, CR_W - PAD * 2 - 20, 50,
+         "500 34px 'Inter', system-ui, sans-serif", "rgba(255,226,160,.95)", true);
+  g.save();
+  g.textAlign = "center"; g.textBaseline = "top";
+  g.font = "24px 'Inter', system-ui, sans-serif";
+  g.fillStyle = "rgba(150,130,92,.85)";
+  g.fillText(state.units.length + " кругов · " + state.mtx.els.length + " сегментов", CR_W / 2, 1818);
+  g.restore();
+
+  // тонкая рамка
+  g.save();
+  g.strokeStyle = "rgba(224,178,92,.28)";
+  g.lineWidth = 2;
+  g.strokeRect(14, 14, CR_W - 28, CR_H - 28);
+  g.restore();
+
+  return cv;
+}
+
+function crFileName(name){
+  const clean = name.trim().replace(/[\\/:*?"<>|]+/g, "").slice(0, 40) || "цветок";
+  return "цветок-жизни-" + clean + ".png";
+}
+
+function saveSnapshot(){
+  const raw = $("crName").value.trim();
+  if (!raw){
+    $("crStatus").textContent = "введите имя, чтобы сохранить цветок";
+    $("crName").focus();
+    return;
+  }
+  const btn = $("crSave");
+  btn.disabled = true;
+  $("crStatus").textContent = "создаём снимок…";
+  const when = new Date();
+  // дать шрифтам подгрузиться, иначе заголовок может уехать на запасной
+  const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+  ready.then(() => {
+    let cv;
+    try { cv = renderSnapshot(raw, when); }
+    catch (err){
+      btn.disabled = false;
+      $("crStatus").textContent = "не удалось создать снимок: " + err.message;
+      return;
+    }
+    cv.toBlob(blob => {
+      btn.disabled = false;
+      if (!blob){
+        $("crStatus").textContent = "не удалось создать файл снимка";
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = crFileName(raw);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 600);
+      $("crStatus").textContent = "снимок сохранён: " + crFileName(raw);
+      setStatus("цветок кристаллизован и сохранён как снимок 9:16");
+    }, "image/png");
+  });
+}
+
+function openCrystalModal(){
+  $("crOverlay").classList.add("show");
+  $("crStatus").textContent = "";
+  const inp = $("crName");
+  inp.value = "";
+  setTimeout(() => inp.focus(), 60);
+}
+function closeCrystal(){
+  $("crOverlay").classList.remove("show");
+  $("crystalBtn").disabled = false;
+  state.crystal.on = false;            // цветок снова редактируется
+  setStatus("кристаллизация отменена — цветок снова можно менять");
+}
+
+function crystallize(){
+  if (state.crystal.on) return;
+  if (!state.units.length){ setStatus("нечего кристаллизовать — цветок пуст"); return; }
+  cancelAuto();
+  stopSpin();
+  refreshPivot();          // опора поворота должна совпадать с текущим цветком
+  // считаем цветок законченным: доводим все незавершённые круги до конца
+  const now = performance.now();
+  for (const u of state.units) if (now - u.born < u.dur) u.born = now - u.dur - 1;
+  state.crystal.on = true;
+  state.crystal.t0 = now;
+  noteAct();
+  $("crystalBtn").disabled = true;
+  setStatus("цветок кристаллизован — введите имя для снимка");
+  setTimeout(openCrystalModal, 900);   // даём увидеть пробег контура
+}
+
+$("crystalBtn").addEventListener("click", crystallize);
+$("crSave").addEventListener("click", saveSnapshot);
+$("crCancel").addEventListener("click", closeCrystal);
+$("crOverlay").addEventListener("click", e => { if (e.target === $("crOverlay")) closeCrystal(); });
+$("crName").addEventListener("keydown", e => {
+  if (e.key === "Enter"){ e.preventDefault(); saveSnapshot(); }
+  if (e.key === "Escape"){ e.preventDefault(); closeCrystal(); }
+});
+
 /* ---------------- запуск ---------------- */
 
 window.addEventListener("resize", resize);
@@ -1382,7 +2123,8 @@ setTimeout(() => runAuto(), 700);
 
 (function loop(){
   const now = performance.now();
-  if (state.spin) state.rot += state.spin * (now - (loop.lastT || now)) / 1000;
+  frameDt = now - (loop.lastT || now);
+  if (state.spin) state.rot += state.spin * frameDt / 1000;
   loop.lastT = now;
   draw();
   requestAnimationFrame(loop);
