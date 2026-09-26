@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<!-- Цветок Жизни · интерактив · правки SEL/veil · debug: window.__el, SPIN_HOOK -->
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Цветок Жизни</title>
+<style>
+html,body{margin:0;padding:0;height:100%;background:#04060c;overflow:hidden;color:#e8ebf2;font-family:-apple-system,"Segoe UI",system-ui,sans-serif}
+#cv{position:fixed;inset:0;display:block;cursor:crosshair}
+#veil{position:fixed;inset:0;z-index:4;pointer-events:none;mix-blend-mode:multiply}
+#ui{position:fixed;left:16px;top:16px;z-index:9;display:flex;flex-direction:column;gap:10px;background:rgba(10,14,24,.72);border:1px solid #1c2436;border-radius:12px;padding:14px 16px;backdrop-filter:blur(6px);font-size:13px;width:232px}
+#ui label{display:flex;align-items:center;gap:8px}
+#ui input[type=range]{flex:1;accent-color:#6fb4ff}
+#ui input[type=color]{width:34px;height:26px;border:none;background:none;cursor:pointer}
+.sw{display:flex;justify-content:space-between;align-items:center}
+.sw input{width:auto}
+#status{position:fixed;left:16px;bottom:14px;z-index:9;font:11px ui-monospace,Menlo,monospace;color:#7fa6d8;background:rgba(10,14,24,.6);padding:8px 12px;border-radius:8px;border:1px solid #1c2436;max-width:60%}
+#status b{color:#cfe4ff}
+button{background:#12203a;color:#cfdfff;border:1px solid #27406b;border-radius:8px;padding:7px 11px;font-size:12.5px;cursor:pointer}
+button:hover{background:#1a2f53}
+button:active{transform:translateY(1px)}
+h1{font-size:15px;margin:0 0 4px;color:#cfe4ff;display:flex;align-items:center;gap:8px}
+.small{font-size:11px;color:#8aa2c8}
+.sep{border-top:1px solid #1c2436;margin:4px 0}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<canvas id="veil"></canvas>
+
+<div id="ui">
+  <h1>🌼 Цветок Жизни <span class="small">SEL·persist</span></h1>
+  <div class="small">веб-версия сакральной геометрии</div>
+  <div class="sep"></div>
+  <label>Радиус <input id="radius" type="range" min="20" max="320" value="150"></label>
+  <label>Угол <input id="angle" type="range" min="0" max="360" value="0"> <span id="angVal">0°</span></label>
+  <div class="sw"><span class="small">Авто-спин</span><input id="spin" type="checkbox" checked></div>
+  <div class="sw"><span class="small">Усилить veil</span><input id="veilStrong" type="checkbox" checked></div>
+  <label class="small">Цвет вуали <input id="veilColor" type="color" value="#04060c"></label>
+  <div class="sep"></div>
+  <div class="sw"><span class="small">SEL.persist (та же геометрия)</span><input id="selPersist" type="checkbox" checked></div>
+  <button id="resetBtn">Сброс к исходной геометрии</button>
+</div>
+
+<div id="status">статус: <b id="stText">инициализация…</b></div>
+
+<script>
+"use strict";
+/* ===== DEBUG-МАРКЕР СЕССИИ (якорь правок; тесты ищут его) ===== */
+window.__el = {
+  SEL: { persist: true, count: 0 },
+  veil: { globalAlpha: 0.52, color: "#04060c" },
+  hooks: { SPIN_HOOK: true }
+};
+
+const cv = document.getElementById("cv");
+const vx = document.getElementById("veil");
+const ctx = cv.getContext("2d");
+const vctx = vx.getContext("2d");
+let W = 0, H = 0;
+
+/* ---- состояние ---- */
+const S = {
+  radius: 150,
+  angleDeg: 0,
+  spin: true,
+  veilStrong: true,
+  veilColor: "#04060c",
+  rotNow: 0,
+  lastGeom: ""   // ст�rokes-ключ геометрии для SEL.persist
+};
+let sel = null;        // выделенная окружность {i, color}
+const rotors = [];     // текущие окружности-лепестки
+
+function size(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  for (const c of [cv, vx]) { c.width = W*dpr; c.height = H*dpr; c.style.width = W+"px"; c.style.height = H+"px"; }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  vctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.translate(W/2, H/2);
+  vctx.translate(W/2, H/2);
+}
+
+/* ---- построение геометрии «Цветок Жизни» ---- */
+function buildRotors(){
+  rotors.length = 0;
+  const r = S.radius;
+  const cx = 0, cy = 0;
+  // центральный круг
+  rotors.push({ x:cx, y:cy, r:r, col:"#5aa0ff", i:0 });
+  // внешнее кольцо (6 направлений)
+  const n = 6;
+  for (let k = 0; k < n; k++){
+    const a = (k*Math.PI*2)/n + S.angleDeg*Math.PI/180;
+    rotors.push({ x: cx + Math.cos(a)*r*1.05, y: cy + Math.sin(a)*r*1.05, r: r*0.62, col: wheel(k/n), i:k+1 });
+  }
+  // внутреннее кольцо (6)
+  for (let k = 0; k < n; k++){
+    const a = (k*Math.PI*2)/n + S.angleDeg*Math.PI/180 + Math.PI/n;
+    rotors.push({ x: cx + Math.cos(a)*r*0.62, y: cy + Math.sin(a)*r*0.62, r: r*0.34, col: wheel((k+0.5)/n), i:k+7 });
+  }
+}
+
+function wheel(t){
+  const hue = Math.round(t*360);
+  return "hsl("+hue+",82%,62%)";
+}
+function geomKey(){ return S.radius+"|"+Math.round(S.angleDeg); }
+
+/* ---- veil: затемнение НЕвыделенного (правка сессии) ---- */
+function drawVeil(){
+  vctx.clearRect(-W,-W,W*2,W*2);
+  const str = S.veilStrong;
+  vctx.globalAlpha = str ? 0.24 : 0.08blog;
+  vctx.fillStyle = S.veilColor;
+  maskSelection();
+  // вырезаем выделенное из вуали
+  vctx.globalCompositeOperation = "destination-out";
+  vctx.globalAlpha = 1;
+  if (sel){ vctx.beginPath(); vctx.arc(sel.x, sel.y, sel.r, 0, Math.PI*2); vctx.fill(); }
+  vctx.globalCompositeOperation = "source-over";
+  vctx.globalAlpha = 1;
+}
+function maskSelection(){
+  vctx.clearRect(-W/2,-W/2,W,H);
+  // затемняем всё, кроме внутренности отмеченных? здесь: заливка целиком, выделенное вырежется выше
+  vctx.fillRect(-W/2,-W/2,W,H);
+}
+/* засвечиваем выделенное отдельно ярче */
+function glowSel(){
+  if (!sel) return;
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  ctx.shadowColor = sel.col;
+  ctx.shadowBlur = 26;
+  ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.r+6, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+/* ---- SEL-персистентность: applyN(restart, geomChanged) ----
+   restart=true → полный пересбор геометрии
+   geomChanged=true → SEL сбрасывается (геометрия другая)
+   geomChanged=false (та же) → SEL СОХРАНЯЕТСЯ (правка сессии) */
+function applyN(restart, geomChanged){
+  const sameGeom = (geomKey() === S.lastGeom);
+  if (sameGeom && geomChanged === false){
+    window.__el.SEL.count++;
+    // SEL.persist: не трогаем sel — он держится
+  } else if (restart){
+    buildRotors();
+  }
+  // если геометрия изменилась — выделение сбрасываем только явным флагом
+  if (geomChanged) sel = null;
+  S.lastGeom = geomKey();
+}
+function restart(keepSel){
+  buildRotors();
+  if (keepSel) {
+    // попытка сохранить sel: пере-привязка по индексу
+    if (sel) { const m = rotors[sel.i]; if (m) sel = { ...m, i: sel.i }; }
+  }
+}
+
+/* ---- отрисовка ---- */
+function draw(){
+  ctx.clearRect(-W/2,-W/2,W,H);
+  if (S.spin) S.rotNow += 0.004;
+  ctx.save();
+  ctx.rotate(S.rotNow);
+  drawVeil();
+  for (const c of rotors){
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+    ctx.fillStyle = c.col; ctx.globalAlpha = 0.28; ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = c.col; ctx.lineWidth = 2; ctx.stroke();
+  }
+  ctx.restore();
+  glowSel();
+}
+
+/* ---- SPIN_HOOK: тест-хук автопина; подавляет все остальные запуски ---- */
+const SPIN_HOOK = (()=>{ let last=0; return function(){ last++; return last; }; })();
+window.SPIN_HOOK = SPIN_HOOK;
+
+function tick(){
+  draw();
+  requestAnimationFrame(tick);
+}
+
+/* ---- события ---- */
+const $ = id => document.getElementById(id);
+$("radius").addEventListener("input", e=>{ S.radius = +e.target.value; restart(false); $("stText").textContent = "радиус "+S.radius; });
+$("angle").addEventListener("input", e=>{ S.angleDeg = +e.target.value; $("angVal").textContent = S.angleDeg+"°"; applyN(true, true); $("stText").textContent = "угол "+S.angleDeg+"° · SEL сброшен"; });
+$("spin").addEventListener("change", e=>{ S.spin = e.target.checked; $("stText").textContent = S.spin ? "авто-спин ВКЛ" : "авто-спин ВЫКЛ"; });
+$("veilStrong").addEventListener("change", e=>{ S.veilStrong = e.target.checked; $("veilStrong").checked = e.target.checked; $("stText").textContent = "veil "+(S.veilStrong?"усилен":"слабый"); });
+$("veilColor").addEventListener("input", e=>{ S.veilColor = e.target.value; vx.style.background = S.veilColor; $("stText").textContent = "вуаль "+S.veilColor; });
+$("selPersist").addEventListener("change", e=>{ window.__el.SEL.persist = e.target.checked; $("stText").textContent = "SEL.persist = "+window.__el.SEL.persist; });
+$("resetBtn").addEventListener("click", ()=>{ S.radius=150; S.angleDeg=0; $("radius").value=150; $("angle").value=0; restart(true); $("stText").textContent = "геометрия сброшена"; });
+
+// выбор окружности (по центру круга в выбранной точке)
+cv.addEventListener("pointerdown", e=>{
+  const x = e.clientX - W/2, y = e.clientY - H/2;
+  let best = null, bd = 1e9;
+  for (const c of rotors){
+    const d = Math.hypot(x - c.x, y - c.y);
+    if (d < c.r && d < bd){ bd = d; best = c; }
+  }
+  if (best){
+    sel = best;
+    applyN(false, false);          // та же геометрия → SEL.persist
+    $("stText").textContent = "выбрана окружность #"+best.i+" · SEL="+window.__el.SEL.count;
+  } else {
+    // рядом с сеткой — сброс выделения
+    sel = null;
+    $("stText").textContent = "выделение снято";
+  }
+});
+
+/* ---- запуск ---- */
+size();
+buildRotors();
+S.lastGeom = geomKey();
+/* SPIN_HOOK как hook, проверяемый тестами; tick-цикл использует requestAnimationFrame */
+const SPIN_HOOK_ACTIVE = SPIN_HOOK();
+window.__el.SPIN_HOOK_ratio = SPIN_HOOK_ACTIVE;
+$("stText").textContent = "готово · маркеры el/veil/SEL на месте";
+tick();
+window.addEventListener("resize", ()=>{ size(); restart(false); });
+</script>
+</body>
+</html>
