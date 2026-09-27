@@ -364,6 +364,10 @@ const state = {
   baseScale: 90,        // базовый масштаб, при котором цветок вписывается
   fitSpan: null,        // ожидаемый полуразмер (в единицах r) для автомасштаба
   rot: 0,               // ручной поворот фигуры (рад)
+  vsnap: 0,             // близость оси симметрии к вертикали, 0..1
+  vd: 0,                // знаковое отклонение от вертикали, рад
+  vsnapped: false,      // ось встала точно вертикально
+  vsettle: null,        // анимация довода до вертикали
   rotC: { x: 0, y: 0 }, // ось вращения — геометрический центр фигуры (unit)
   spin: 0,              // скорость автовращения (рад/с), 0 = выключено
   pointer: null,        // состояние drag/pan/rotate
@@ -546,6 +550,106 @@ function rotRingPx(){
   const h = handleAt();
   return { cx: h.x, cy: h.y, r: rotRingUnitR() * scale };
 }
+/* ---------------- прилипание оси симметрии к вертикали ---------------- */
+
+// ось симметрии цветка вертикальна не только при rot = 0: у фигуры с
+// 6-кратной симметрией вертикальная ось есть при каждом повороте на 60°, и все
+// эти положения дают одно и то же изображение. Поэтому шаг прилипания — 60°,
+// а не полный оборот: иначе половина «ровных» положений осталась бы без помощи
+// и вертикальная ось мерцала бы в самый неподходящий момент.
+// Пока пользователь крутит, угол идёт полностью свободно — магнит, встроенный
+// в прибавку угла, не даёт фигуре уйти при быстром движении и оставляет внутри
+// зоны равновесие вместо точного попадания. Довод срабатывает на остановке,
+// как направляющая в редакторах
+const SNAP_STEP = Math.PI / 3;            // 60° — период симметрии цветка
+const SNAP_ZONE = 2.5 * Math.PI / 180;    // зона, в которой ось залипает
+const SNAP_SETTLE = 110;                  // мс на довод до вертикали
+const SNAP_DONE = 0.0012;                 // точное вертикальное положение
+
+// близость оси к вертикали: 1 — у самой цели, 0 — вне зоны
+function rotNearVS(){
+  const k = Math.round(state.rot / SNAP_STEP) * SNAP_STEP;
+  const d = Math.atan2(Math.sin(state.rot - k), Math.cos(state.rot - k));
+  state.vd = d;
+  state.vsnap = Math.abs(d) < SNAP_ZONE ? 1 - Math.abs(d) / SNAP_ZONE : 0;
+  if (state.vsnap < .999) state.vsnapped = false;   // ось ушла с ориентировки
+}
+
+// единственная точка поворота: угол пользователя не трогаем
+function rotBy(delta){
+  state.vsettle = null;                  // пользователь опять крутит
+  state.vsnapped = false;
+  state.rot += delta;
+}
+
+// ось встала ровно — доводить больше нечего
+function stepVSnap(now){
+  const s = state.vsettle;
+  if (!s) return;
+  if (state.rot !== s.last){             // угол изменили не мы (сброс, загрузка)
+    state.vsettle = null;
+    return;
+  }
+  const p = Math.min(1, (now - s.t0) / SNAP_SETTLE);
+  state.rot = s.from + (s.to - s.from) * (1 - Math.pow(1 - p, 3));
+  s.last = state.rot;
+  if (p < 1) return;
+  state.rot = s.to;                      // ровно вертикально
+  state.vsettle = null;
+  state.vsnapped = true;                 // с этого момента направляющая скрыта
+  setStatus("ось симметрии — точно вертикально");
+}
+
+// ручку отпустили внутри зоны — ось мягко доводится до вертикали
+function settleVSnap(){
+  // без проверки vsnapped ось встала бы в довод заново каждый кадр и «залипа»
+  // на месте с нулевым прогрессом
+  if (state.vsettle || state.vsnapped) return;
+  // расстояние считаем здесь, а не берём из state.vsnap: тот обновляется в
+  // конце кадра, и быстрый поворот с отпусканием в том же кадре доворачивал
+  // бы ось на полоборота в сторону
+  const k = Math.round(state.rot / SNAP_STEP) * SNAP_STEP;
+  const d = Math.atan2(Math.sin(state.rot - k), Math.cos(state.rot - k));
+  if (Math.abs(d) >= SNAP_ZONE) return;         // вне зоны
+  state.vsettle = { from: state.rot, to: k, last: state.rot, t0: performance.now() };
+}
+
+function drawVSnapGuide(){
+  // направляющая живёт только пока ось реально доворачивают: сама по себе
+  // вертикальность (например, при загрузке) подсказки не требует
+  if (!state.vsnap || state.vsnapped) return;
+  if (!state.vsettle && !(state.pointer && state.pointer.rot)) return;
+  const k = Math.pow(state.vsnap, 1.5); // ближе к вертикали — заметнее
+  const x = origin.x;
+  const t = performance.now();
+  ctx.save();
+  ctx.lineCap = "round";
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(255,222,140,0)");
+  g.addColorStop(.16, "rgba(255,226,150," + (.10 * k).toFixed(3) + ")");
+  g.addColorStop(.5, "rgba(255,232,170," + (.34 * k).toFixed(3) + ")");
+  g.addColorStop(.84, "rgba(255,226,150," + (.10 * k).toFixed(3) + ")");
+  g.addColorStop(1, "rgba(255,222,140,0)");
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 9]);
+  ctx.lineDashOffset = -t * .02;
+  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  // засечки у краёв — так направляющая читается как прицел, а не как штрих
+  const pl = 1.6 + 2.6 * k, ph = 9 + 9 * k;
+  ctx.strokeStyle = "rgba(255,236,185," + (.5 * k).toFixed(3) + ")";
+  ctx.lineWidth = 1.4;
+  for (const y of [ph, H - ph]){
+    ctx.beginPath();
+    ctx.moveTo(x - pl, y); ctx.lineTo(x + pl, y);
+    ctx.moveTo(x, y - 4 * k - 1); ctx.lineTo(x, y + 4 * k - 1);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function onRotRing(mx, my){
   if (!rotRingVisible() || state.ringA < .2) return false;
   const { cx, cy, r } = rotRingPx();
@@ -579,6 +683,7 @@ function updateZoomLabel(){
 }
 function fitView(){
   state.rot = 0;
+  state.vsettle = null;
   refreshPivot();
   state.zoom = 1;
   previewFit(state.units.length ? state.units : [{ x: 0, y: 0 }]);
@@ -755,6 +860,7 @@ async function runAuto(){
   state.autoTok = tok;
   state.spin = 0;
   state.rot = 0;
+  state.vsettle = null;
   state.zoom = 1;
   previewFit(plan);
   center();
@@ -1633,6 +1739,7 @@ function draw(){
     for (const u of state.units) drawCircle(u);
     drawCrystallize();
   } else {
+    drawVSnapGuide();
     if (state.opts.axes) drawAxes();
     drawRotateHandle();
     drawRotRing();
@@ -1738,6 +1845,7 @@ $("resetBtn").addEventListener("click", () => {
   state.fitSpan = null;
   state.zoom = 1;
   state.rot = 0;
+  state.vsettle = null;
   state.baseScale = 90;
   scale = 90;
   center();
@@ -1810,6 +1918,7 @@ function loadFlower(file){
         dur: u.dur || 600, born: performance.now()
       }));
       state.rot = typeof data.rot === "number" ? data.rot : 0;
+      state.vsettle = null;
       if (data.opts && typeof data.opts === "object")
         for (const k of Object.keys(state.opts))
           if (data.opts[k] !== undefined) state.opts[k] = data.opts[k];
@@ -1970,7 +2079,7 @@ scene.addEventListener("pointermove", e => {
     state.pointer.pan = true;
     if (state.pointer.rot){
       const ang = Math.atan2(e.clientY - origin.y, e.clientX - origin.x);
-      state.rot += ang - state.pointer.lastAng;
+      rotBy(ang - state.pointer.lastAng);
       state.pointer.lastAng = ang;
     } else {
       origin.x = state.pointer.ox + dx;
@@ -2438,6 +2547,9 @@ setTimeout(() => runAuto(), 700);
   const now = performance.now();
   frameDt = now - (loop.lastT || now);
   updateAmbient(now);
+  if (!(state.pointer && state.pointer.rot)) settleVSnap();
+  stepVSnap(now);
+  rotNearVS();
   updateHold(now);
   updatePanelIdle(now);
   if (state.spin) state.rot += state.spin * frameDt / 1000;
