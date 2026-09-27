@@ -160,6 +160,43 @@
   #panel.collapsed .crystal-btn{margin:9px auto 0}
   #panel.collapsed .zoomrow{flex-direction:column;gap:6px;margin-top:6px}
   #panel.collapsed .ico svg{width:20px;height:20px}
+  /* кнопки режимов в ленте — те же иконки-кнопки */
+  #panel.collapsed .modeBtn{
+    width:48px;height:44px;margin:0 auto 6px;padding:0;border-radius:11px;
+    display:grid;place-items:center;font-size:0;letter-spacing:0;
+    background:rgba(10,11,16,.5);border:1px solid rgba(224,178,92,.2);color:#8a7a58}
+  #panel.collapsed .modeBtn.on{
+    background:linear-gradient(135deg,#ecc15a,#a87f27);
+    border-color:transparent;color:#221903;box-shadow:0 3px 12px rgba(236,193,90,.3)}
+  #panel.collapsed .modeBtn .ico{position:relative;z-index:1}
+  /* полное сворачивание: панель исчезает, остаётся кнопка «три точки» сверху */
+  .miniBtn{
+    position:fixed;top:10px;right:10px;z-index:40;display:none;
+    width:42px;height:42px;border-radius:12px;cursor:pointer;
+    background:linear-gradient(160deg,rgba(30,31,40,.92),rgba(12,13,18,.92));
+    border:1px solid rgba(224,178,92,.28);color:#e8c46a;
+    font-size:20px;line-height:1;letter-spacing:1px;
+    box-shadow:0 4px 16px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+  body.panel-mini .miniBtn{display:grid;place-items:center}
+  body.panel-mini #panel,
+  body.panel-mini #panel.collapsed,
+  body.touch.panel-mini #panel,
+  body.touch.panel-mini #panel.collapsed{
+    width:0;padding:0;border:0;background:transparent;overflow:hidden;pointer-events:none}
+  body.panel-mini #panel > *{display:none}
+  /* кнопки режимов в раскрытой панели */
+  .modeRow{display:flex;flex-direction:column;gap:6px}
+  .modeBtn{
+    display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;cursor:pointer;
+    border-radius:10px;font:inherit;font-size:12px;letter-spacing:.02em;text-align:left;
+    background:rgba(10,11,16,.55);border:1px solid rgba(224,178,92,.2);color:#b9a67e;
+    transition:background .18s,border-color .18s,color .18s}
+  .modeBtn .ico{flex:0 0 auto;display:grid;place-items:center}
+  .modeBtn .ico svg{width:17px;height:17px}
+  .modeBtn:hover{border-color:rgba(224,178,92,.4)}
+  .modeBtn.on{
+    background:linear-gradient(135deg,rgba(236,193,90,.9),rgba(168,127,39,.85));
+    border-color:transparent;color:#221903;font-weight:600}
   /* переключатели настроек остаются в ленте как иконки-состояния */
   #panel.collapsed .checks{gap:6px}
   #panel.collapsed .checks label{
@@ -191,6 +228,7 @@
 <body>
 <canvas id="scene"></canvas>
 
+<button id="miniBtn" class="miniBtn" type="button" title="Панель настроек" aria-label="Панель настроек">⋯</button>
 <aside id="panel">
   <button id="panelToggle" type="button" title="Свернуть панель" aria-label="Свернуть панель"></button>
   <section>
@@ -205,8 +243,8 @@
 
   <section>
     <div class="rowlbl"><span>КРУГОВ</span><input id="cntn" type="number" min="1" step="1" value="19"></div>
-    <button data-ico="play" id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
-    <button data-ico="replay" id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
+    <button data-ico="sparkles" id="goBtn" class="btn primary" type="button">ПОСТРОИТЬ</button>
+    <button data-ico="play" id="animBtn" class="btn ghost" type="button">АНИМАЦИЯ</button>
   </section>
 
   <section>
@@ -223,15 +261,13 @@
       <span>МАТРИЦА ЦВЕТКА</span><span class="chev">▾</span>
     </button>
     <div id="mtxBody" class="acc-body" style="max-height:760px">
-      <div class="checks">
-        <label data-ico="cursor"><input id="mOn" type="checkbox"> построение из сегментов</label>
+      <div class="modeRow">
+        <button data-ico="p" id="modeCircle" class="modeBtn on" type="button">создание кругов</button>
+        <button data-ico="m" id="modeMtx" class="modeBtn" type="button">матрица цветка</button>
       </div>
       <div class="chipLbl" style="margin-top:7px">СЛОЙ</div>
       <div class="chipWrap" id="mtxTypes">
-        <button class="chip" data-t="circle" type="button">круг</button>
-        <button class="chip" data-t="lens" type="button">линза</button>
-        <button class="chip" data-t="leaf" type="button">листок·шип</button>
-        <button class="chip" data-t="petal" type="button">лепесток</button>
+        <button class="chip on" data-t="circle" type="button">круг</button>
       </div>
       <div class="zoomrow" style="margin-top:7px">
         <button data-ico="close" id="mtxClear" class="zbtn" type="button">ОЧИСТИТЬ</button>
@@ -336,6 +372,10 @@ const state = {
   ringA: 0,             // текущая прозрачность кольца поворота 0..1 (плавное появление/затухание)
   crystal: { on: false, t0: 0 }, // кристаллизация: обводка периметра + скрытые оси
   ambient: { ramp: 0, on: false, waveT0: 0 }, // фоновое вращение по простою + золотой импульс
+  hold: null,     // удержание круга: { u, t0 } — через 1 с круг удаляется
+  touches: {},    // активные указатели для масштабирования двумя пальцами
+  pinch: null,     // { d } — расстояние между пальцами в момент начала щипка
+  pinchDone: false, // палец остался после щипка — не начинаем рисование
   opts: { fill: true, axes: true, lens: false, labels: true, fx: true, glow: true, sound: true }
 };
 
@@ -919,6 +959,77 @@ function manualUndo(){
   updateStat(); setStatus("отменено: окружность " + u.letter);
 }
 
+/* ---------------- удержание круга: красный контур и удаление через 1 с ---------------- */
+
+const HOLD_MS = 1000;    // мс удержания до удаления
+const HOLD_SLOP = 9;     // px — больше этого считаем переносом, а не удержанием
+// Точки для новых кругов лежат ровно на контурах уже нарисованных окружностей,
+// поэтому удалять можно только зажатием внутри круга: на контуре касание всегда
+// остаётся доступным для построения.
+const HOLD_IN = 0.72;    // доля радиуга, где зажатие считается удалением
+
+// ближайший круг под точкой экрана
+function unitAt(px, py, maxD){
+  if (!state.units.length) return null;
+  const m = toUnit(px, py);
+  let best = null, bd = Infinity;
+  for (let i = state.units.length - 1; i >= 0; i--){
+    const u = state.units[i];
+    const d = Math.hypot(u.x - m.x, u.y - m.y);
+    if (d <= maxD && d < bd){ bd = d; best = u; }
+  }
+  return best;
+}
+function startHold(px, py){
+  if (state.crystal.on || state.autoTok) return false;
+  if (state.hover) return false;                       // здесь строится новый круг
+  const u = unitAt(px, py, HOLD_IN);
+  if (!u) return false;
+  state.hold = { u, t0: performance.now(), x: px, y: py };
+  return true;
+}
+function cancelHold(){ state.hold = null; }
+function deleteUnit(u){
+  const i = state.units.indexOf(u);
+  if (i < 0) return false;
+  state.units.splice(i, 1);
+  state.caps = state.caps.filter(c => performance.now() - c.born < c.life);
+  state.hover = null;
+  cancelHold();
+  refreshPivot();
+  bumpGeom();
+  updateStat();
+  noteAct();
+  setStatus("окружность " + u.letter + " удалена удержанием");
+  return true;
+}
+function updateHold(now){
+  if (state.hold && now - state.hold.t0 >= HOLD_MS){
+    const u = state.hold.u;
+    state.hold = null;
+    deleteUnit(u);
+  }
+}
+function drawHoldTarget(){
+  const h = state.hold;
+  if (!h) return;
+  const p = Math.min(1, (performance.now() - h.t0) / HOLD_MS);
+  const P = toPx(h.u);
+  ctx.save();
+  ctx.shadowColor = "rgba(255,70,70,.95)";
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = "rgba(255,88,88,.95)";
+  ctx.lineWidth = 2 + 2.6 * p;
+  ctx.beginPath(); ctx.arc(P.x, P.y, scale, 0, Math.PI * 2); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,170,120,.95)";   // дуга прогресса удержания
+  ctx.lineWidth = 3.4;
+  ctx.beginPath();
+  ctx.arc(P.x, P.y, scale + 7, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* ---------------- отрисовка ---------------- */
 
 function ease(p){ return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; }
@@ -1010,11 +1121,11 @@ function drawCircle(u){
 
   if (showLbl){
     const scaleIn = Math.min(1, p / .35);
-    ctx.font = "italic 700 " + Math.max(11, (12 + scale * .13) * scaleIn) + "px Georgia, serif";
+    ctx.font = "italic 700 " + Math.max(9, (9.5 + scale * .082) * scaleIn).toFixed(1) + "px Georgia, serif";
     ctx.textAlign = "center"; ctx.textBaseline = "bottom";
     ctx.fillStyle = "rgba(255,232,170," + Math.min(1, p * 1.6 + .2) + ")";
-    if (state.opts.glow){ ctx.shadowColor = "rgba(255,200,90,.8)"; ctx.shadowBlur = 7; }
-    ctx.fillText(u.letter, px, py - scale * .98 - 3);
+    if (state.opts.glow){ ctx.shadowColor = "rgba(255,200,90,.8)"; ctx.shadowBlur = 5; }
+    ctx.fillText(u.letter, px, py - scale * .97 - 2);
     ctx.shadowBlur = 0;
   }
 }
@@ -1320,7 +1431,8 @@ function ptArcDist(ar, mx, my){
 }
 
 const MTX_TYPES = { circle: "круг", lens: "линза", leaf: "листок", spike: "шип", petal: "лепесток" };
-const LAYER_TYPES = { circle: ["circle"], lens: ["lens"], leaf: ["leaf", "spike"], petal: ["petal"] };
+// определение прочих сегментов (линза, листок, лепесток) отключено: работало неверно
+const LAYER_TYPES = { circle: ["circle"] };
 const LAYER_NAMES = { circle: "круг", lens: "линза", leaf: "листок·шип", petal: "лепесток" };
 const LENS_TOL = 0.02;
 
@@ -1343,170 +1455,10 @@ function remapMtxEls(){
 }
 
 function buildCandidates(){
-  const U = state.units;
-  const n = U.length;
-  const out = { circle: [], lens: [], leaf: [], spike: [], petal: [] };
-  if (!n) return out;
-
-  for (let i = 0; i < n; i++)
-    out.circle.push({ type: "circle", idx: i });
-
-  // слой «линза»: пара кругов, когда окружность второго проходит через центр первого (d = 1)
-  for (let i = 0; i < n; i++)
-    for (let j = i + 1; j < n; j++){
-      const A = U[i], B = U[j];
-      const d = Math.hypot(A.x - B.x, A.y - B.y);
-      if (Math.abs(d - 1) > LENS_TOL) continue;
-      const pts = interPts(A.x, A.y, B.x, B.y);
-      if (pts.length < 2) continue;
-      const arcA = arcToward(A, pts[0], pts[1], B);
-      const arcB = revArc(arcToward(B, pts[0], pts[1], A));
-      out.lens.push({ type: "lens", a: i, b: j, arcs: [arcA, arcB] });
-    }
-
-  // слой «листок»: общее перекрытие трёх кругов (листок) и три шипа вокруг него
-  for (let i = 0; i < n; i++)
-    for (let j = i + 1; j < n; j++){
-      if (Math.hypot(U[i].x - U[j].x, U[i].y - U[j].y) > 2 - 1e-6) continue;
-      for (let k = j + 1; k < n; k++){
-        const A = U[i], B = U[j], C = U[k];
-        if (Math.hypot(B.x - C.x, B.y - C.y) > 2 - 1e-6) continue;
-        if (Math.hypot(C.x - A.x, C.y - A.y) > 2 - 1e-6) continue;
-        const cx = (A.x + B.x + C.x) / 3, cy = (A.y + B.y + C.y) / 3;
-        if (Math.hypot(A.x - cx, A.y - cy) >= 1 - 1e-6) continue;
-        if (Math.hypot(B.x - cx, B.y - cy) >= 1 - 1e-6) continue;
-        if (Math.hypot(C.x - cx, C.y - cy) >= 1 - 1e-6) continue;
-        const qMap = {};
-        const vIn = (u, v, w) => {
-          const key = u < v ? u + "_" + v : v + "_" + u;
-          if (qMap[key] === undefined){
-            const p = interPts(U[u].x, U[u].y, U[v].x, U[v].y);
-            const W = U[w];
-            qMap[key] = Math.hypot(p[0].x - W.x, p[0].y - W.y) <= Math.hypot(p[1].x - W.x, p[1].y - W.y)
-              ? p[0] : p[1];
-          }
-          return qMap[key];
-        };
-        const qOut = (u, v, w) => {
-          const p = interPts(U[u].x, U[u].y, U[v].x, U[v].y);
-          const W = U[w];
-          return Math.hypot(p[0].x - W.x, p[0].y - W.y) <= Math.hypot(p[1].x - W.x, p[1].y - W.y)
-            ? p[1] : p[0];
-        };
-        const ab = vIn(i, j, k), ac = vIn(i, k, j), bc = vIn(j, k, i);
-        const Cpt = { x: cx, y: cy };
-        out.leaf.push({ type: "leaf", i, j, k, arcs: [
-          arcToward(U[j], bc, ab, Cpt),
-          arcToward(U[i], ab, ac, Cpt),
-          arcToward(U[k], ac, bc, Cpt)
-        ]});
-        const abO = qOut(i, j, k), acO = qOut(i, k, j), bcO = qOut(j, k, i);
-        const avoid = (Uu, p, q, pt) => {
-          const av = Math.atan2(pt.y - Uu.y, pt.x - Uu.x);
-          const a1 = arcToward(Uu, p, q, pt);
-          if (arcInSpan(a1.start, a1.end, a1.ccw, av))
-            return arcToward(Uu, p, q, { x: 2 * Uu.x - pt.x, y: 2 * Uu.y - pt.y });
-          return a1;
-        };
-        out.spike.push({ type: "spike", a: i, b: j, c: k, arcs: [
-          avoid(U[i], ac, abO, ab),
-          avoid(U[j], abO, bc, ab),
-          revArc(arcToward(U[k], ac, bc, Cpt))
-        ]});
-        out.spike.push({ type: "spike", a: i, b: k, c: j, arcs: [
-          avoid(U[i], ab, acO, ac),
-          avoid(U[k], acO, bc, ac),
-          revArc(arcToward(U[j], ab, bc, Cpt))
-        ]});
-        out.spike.push({ type: "spike", a: j, b: k, c: i, arcs: [
-          avoid(U[j], ab, bcO, bc),
-          avoid(U[k], bcO, ac, bc),
-          revArc(arcToward(U[i], ab, ac, Cpt))
-        ]});
-      }
-    }
-
-  // слой «лепесток»: область одновременного перекрытия четырёх кругов
-  // («кошачий зрачок» в центре линзы); граница — дуги участвующих кругов (2–4)
-  const shiftAng = (a, ref) => {
-    while (a - ref > Math.PI) a -= Math.PI * 2;
-    while (a - ref < -Math.PI) a += Math.PI * 2;
-    return a;
-  };
-  const regionOf = (cids, F) => {
-    const arcs = [];
-    for (const c of cids){
-      const C = U[c];
-      const tF = Math.atan2(F.y - C.y, F.x - C.x);
-      let lo = -Math.PI, hi = Math.PI, ok = true;
-      for (const d of cids){
-        if (d === c) continue;
-        const D = U[d];
-        const cd = Math.hypot(D.x - C.x, D.y - C.y);
-        if (cd >= 2 - 1e-9){ ok = false; break; }
-        const dir = Math.atan2(D.y - C.y, D.x - C.x);
-        const al = Math.acos(Math.max(-1, Math.min(1, cd / 2)));
-        const o1 = shiftAng(dir - al, tF), o2 = shiftAng(dir + al, tF);
-        lo = Math.max(lo, Math.min(o1, o2));
-        hi = Math.min(hi, Math.max(o1, o2));
-      }
-      const span = hi - lo;
-      if (!ok || span < 2e-3 || span > Math.PI) continue;
-      const p1 = { x: C.x + Math.cos(lo), y: C.y + Math.sin(lo) };
-      const p2 = { x: C.x + Math.cos(hi), y: C.y + Math.sin(hi) };
-      const cw = { x: C.x, y: C.y, start: lo, end: hi, ccw: false };
-      const ccw = { x: C.x, y: C.y, start: lo, end: hi, ccw: true };
-      const mid = (a) => ({ x: a.x + Math.cos((a.start + a.end) / 2), y: a.y + Math.sin((a.start + a.end) / 2) });
-      const m1 = mid(cw), m2 = mid(ccw);
-      arcs.push(Math.hypot(m1.x - F.x, m1.y - F.y) < Math.hypot(m2.x - F.x, m2.y - F.y) ? cw : ccw);
-    }
-    if (arcs.length < 2) return null;
-    const endPt = (ar) => ({ x: ar.x + Math.cos(ar.end), y: ar.y + Math.sin(ar.end) });
-    const startPt = (ar) => ({ x: ar.x + Math.cos(ar.start), y: ar.y + Math.sin(ar.start) });
-    const near = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 1e-6;
-    const order = [arcs[0]];
-    const used = [0];
-    let tail = endPt(arcs[0]);
-    for (let step = 0; step < arcs.length - 1; step++){
-      let found = -1;
-      for (let k = 0; k < arcs.length; k++){
-        if (used.indexOf(k) >= 0) continue;
-        if (near(startPt(arcs[k]), tail)){ found = k; break; }
-        if (near(endPt(arcs[k]), tail)){
-          arcs[k] = revArc(arcs[k]);
-          found = k; break;
-        }
-      }
-      if (found < 0) return null;
-      order.push(arcs[found]);
-      used.push(found);
-      tail = endPt(arcs[found]);
-    }
-    if (!near(endPt(order[order.length - 1]), startPt(order[0]))) return null;
-    return order;
-  };
-  const byCent = new Map();
-  const centKey = (x, y) => Math.round(x * 1e5) + "," + Math.round(y * 1e5);
-  for (let i = 0; i < n; i++)
-    for (let j = i + 1; j < n; j++)
-      for (let k = j + 1; k < n; k++)
-        for (let l = k + 1; l < n; l++){
-          const A = U[i], B = U[j], C = U[k], D = U[l];
-          const gx = (A.x + B.x + C.x + D.x) / 4, gy = (A.y + B.y + C.y + D.y) / 4;
-          if (Math.hypot(A.x - gx, A.y - gy) >= 1 - 1e-6) continue;
-          if (Math.hypot(B.x - gx, B.y - gy) >= 1 - 1e-6) continue;
-          if (Math.hypot(C.x - gx, C.y - gy) >= 1 - 1e-6) continue;
-          if (Math.hypot(D.x - gx, D.y - gy) >= 1 - 1e-6) continue;
-          const arcs = regionOf([i, j, k, l], { x: gx, y: gy });
-          if (!arcs) continue;
-          const key = centKey(gx, gy);
-          const prev = byCent.get(key);
-          if (!prev || arcs.length > prev.arcs.length)
-            byCent.set(key, { a: i, b: j, c: k, d: l, arcs: arcs });
-        }
-  for (const petal of byCent.values())
-    out.petal.push({ type: "petal", a: petal.a, b: petal.b, c: petal.c, d: petal.d, arcs: petal.arcs });
-
+  // временно определяем только круги — логика остальных сегментов будет переделана
+  const out = { circle: [] };
+  const n = state.units.length;
+  for (let i = 0; i < n; i++) out.circle.push({ type: "circle", idx: i });
   return out;
 }
 
@@ -1671,6 +1623,7 @@ function draw(){
     for (const u of state.units) drawCircle(u);
   }
   drawAmbientWave();
+  drawHoldTarget();
   drawHover();
   drawMatrix();
   drawCaptions();
@@ -1889,13 +1842,20 @@ $("chipRow").addEventListener("click", e => {
   runAuto();
 });
 
-$("mOn").addEventListener("change", e => {
-  state.mtx.on = e.target.checked;
+function setMtxMode(on){
+  state.mtx.on = !!on;
   state.hoverEl = null;
+  updateModeButtons();
   setStatus(state.mtx.on
-    ? "режим матрицы: ведите мышь — подсветится сегмент под курсором, клик добавляет/убирает его"
-    : "построение цветка (круги)");
-});
+    ? "режим: матрица цветка — касание выбирает сегмент, удержание круга удаляет его"
+    : "режим: создание кругов — касание рисует круг, удержание круга удаляет его");
+}
+function updateModeButtons(){
+  $("modeCircle").classList.toggle("on", !state.mtx.on);
+  $("modeMtx").classList.toggle("on", state.mtx.on);
+}
+$("modeCircle").addEventListener("click", () => setMtxMode(false));
+$("modeMtx").addEventListener("click", () => setMtxMode(true));
 $("mtxTypes").addEventListener("click", e => {
   const b = e.target.closest(".chip");
   if (!b) return;
@@ -1925,13 +1885,49 @@ window.addEventListener("keydown", e => {
   else if (e.key === "0"){ e.preventDefault(); fitView(); }
 });
 
+/* ---- масштабирование двумя пальцами: вторая точка отменяет рисование ---- */
+function touchList(){
+  return Object.values(state.touches);
+}
+function beginPinch(){
+  const q = touchList();
+  if (q.length < 2) return;
+  const d = Math.hypot(q[0].x - q[1].x, q[0].y - q[1].y);
+  state.pinch = { d: d > 6 ? d : 0 };
+  state.pointer = null;         // перенос/поворот отменены
+  cancelHold();
+  state.mouse = null;           // при щипке наведение не нужно
+}
+function movePinch(){
+  const q = touchList();
+  if (!state.pinch || q.length < 2) return;
+  const d = Math.hypot(q[0].x - q[1].x, q[0].y - q[1].y);
+  const cx = (q[0].x + q[1].x) / 2, cy = (q[0].y + q[1].y) / 2;
+  if (state.pinch.d > 6 && d > 6) zoomBy(d / state.pinch.d, cx, cy);
+  state.pinch.d = d;
+}
+function endPinch(id){
+  delete state.touches[id];
+  if (!state.pinch) return;
+  state.pinch = null;
+  // один палец остался — рисование не начинаем, ждём его отпускания
+  state.pointer = null;
+  if (touchList().length === 0) state.pinchDone = true;
+}
+
 scene.addEventListener("pointerdown", e => {
   noteAct();
+  state.touches[e.pointerId] = { x: e.clientX, y: e.clientY };
+  if (touchList().length >= 2){ beginPinch(); return; }
+  if (state.pinchDone){ state.pinchDone = false; return; }   // палец, оставшийся после щипка
+  if (state.crystal.on) return;                              // снимок зафиксирован
   state.mouse = { x: e.clientX, y: e.clientY };
   if (state.autoTok){
     state.silence = true;
     cancelAuto();
   }
+  computeHover();                                             // решаем: строим круг или удаляем
+  if (startHold(e.clientX, e.clientY)) return;                // удержание круга вместо рисования
   scene.setPointerCapture(e.pointerId);
   state.pointer = {
     x: e.clientX, y: e.clientY,
@@ -1942,7 +1938,14 @@ scene.addEventListener("pointerdown", e => {
 });
 scene.addEventListener("pointermove", e => {
   noteAct();
+  if (state.touches[e.pointerId]){
+    state.touches[e.pointerId] = { x: e.clientX, y: e.clientY };
+  }
+  if (state.pinch){ movePinch(); return; }
   state.mouse = { x: e.clientX, y: e.clientY };
+  if (state.hold){
+    if (Math.hypot(e.clientX - state.hold.x, e.clientY - state.hold.y) > HOLD_SLOP) cancelHold();
+  }
   if (state.pointer){
     const dx = e.clientX - state.pointer.x, dy = e.clientY - state.pointer.y;
     const moved = Math.hypot(dx, dy);
@@ -1959,6 +1962,10 @@ scene.addEventListener("pointermove", e => {
   }
 });
 scene.addEventListener("pointerup", e => {
+  const wasPinch = !!state.pinch;
+  endPinch(e.pointerId);
+  if (wasPinch) return;
+  if (state.hold){ cancelHold(); state.silence = false; return; }  // не дождались секунды
   if (state.pointer){
     const wasPan = state.pointer.pan;
     state.pointer = null;
@@ -1980,8 +1987,12 @@ scene.addEventListener("pointerup", e => {
     }
   }
 });
-scene.addEventListener("pointerleave", () => { state.mouse = null; });
-scene.addEventListener("pointercancel", () => { state.pointer = null; });
+scene.addEventListener("pointercancel", e => {
+  endPinch(e.pointerId);
+  cancelHold();
+  state.pointer = null;
+});
+scene.addEventListener("pointerleave", () => { if (!state.pinch) state.mouse = null; });
 
 /* ---------------- кристаллизация ---------------- */
 
@@ -2250,7 +2261,6 @@ $("crName").addEventListener("keydown", e => {
 
 const ICONS = {
   play:     '<path d="M8 5.5 19 12 8 18.5z" fill="currentColor" stroke="none"/>',
-  replay:   '<path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 3.5v5h-5"/>',
   plus:     '<path d="M12 5v14M5 12h14"/>',
   minus:    '<path d="M5 12h14"/>',
   frame:    '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
@@ -2270,7 +2280,9 @@ const ICONS = {
   sun:      '<circle cx="12" cy="12" r="3.8"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.4 5.4 7 7M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/>',
   speaker:  '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.5a8 8 0 0 1 0 11"/>',
   sliders:  '<path d="M4 7.5h5M15 7.5h5M4 16.5h5M15 16.5h5"/><circle cx="12" cy="7.5" r="2.4"/><circle cx="12" cy="16.5" r="2.4"/>',
-  cursor:   '<path d="M6 3.5l12 7.6-5.3 1.4 3.1 6.2-2.6 1.3-3.1-6.2-3.7 4z"/>'
+  cursor:   '<path d="M6 3.5l12 7.6-5.3 1.4 3.1 6.2-2.6 1.3-3.1-6.2-3.7 4z"/>',
+  m:        '<text x="12" y="16.6" text-anchor="middle" font-size="13" font-weight="700" font-family="Inter, system-ui, sans-serif" fill="currentColor" stroke="none">М</text>',
+  p:        '<text x="12" y="16.6" text-anchor="middle" font-size="13" font-weight="700" font-family="Inter, system-ui, sans-serif" fill="currentColor" stroke="none">П</text>'
 };
 function icoSVG(name){
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
@@ -2322,6 +2334,7 @@ let panelCollapsed = false;
 let userChosePanel = false;
 
 function panelReserve(){
+  if (panelMini) return 0;                       // панель скрыта — фигура по центру
   if (panelCollapsed) return isPhone() ? 72 : 96;
   return isPhone() ? 322 : 384;
 }
@@ -2341,6 +2354,36 @@ function setPanelCollapsed(v, remember){
   }
   syncPanelLayout();
 }
+const IDLE_MINI_MS = 7000;   // мс без касаний — панель сворачивается в «три точки»
+let panelMini = false;
+function setPanelMini(v){
+  if (panelMini === !!v) return;
+  panelMini = !!v;
+  document.body.classList.toggle("panel-mini", panelMini);
+  $("miniBtn").title = panelMini ? "Панель настроек" : "Панель настроек";
+  syncPanelLayout();
+}
+// на телефоне после 7 с без касаний панель исчезает, фигура встаёт по центру
+function updatePanelIdle(now){
+  if (!isPhone()){ if (panelMini) setPanelMini(false); return; }
+  const el = document.activeElement;
+  if (state.crystal.on || (el && el.tagName === "INPUT")) return;
+  setPanelMini(now - state.lastAct > IDLE_MINI_MS);
+}
+$("miniBtn").addEventListener("click", () => {
+  noteAct();
+  if (panelMini){
+    setPanelMini(false);
+    setPanelCollapsed(true, false);
+  } else {
+    setPanelCollapsed(!panelCollapsed);
+  }
+});
+// работа в панели тоже считается активностью
+$("panel").addEventListener("pointerdown", noteAct, { passive: true });
+$("panel").addEventListener("input", noteAct);
+$("panel").addEventListener("change", noteAct);
+
 function initPanel(){
   initPanelIcons();
   let saved = null;
@@ -2368,13 +2411,15 @@ seedParticles();
 updateStat();
 updateZoomLabel();
 updateChips();
-document.querySelector('#mtxTypes .chip[data-t="circle"]').classList.add("on");
+updateModeButtons();
 setTimeout(() => runAuto(), 700);
 
 (function loop(){
   const now = performance.now();
   frameDt = now - (loop.lastT || now);
   updateAmbient(now);
+  updateHold(now);
+  updatePanelIdle(now);
   if (state.spin) state.rot += state.spin * frameDt / 1000;
   loop.lastT = now;
   draw();
