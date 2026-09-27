@@ -982,6 +982,7 @@ function unitAt(px, py, maxD){
 }
 function startHold(px, py){
   if (state.crystal.on || state.autoTok) return false;
+  if (state.mtx.on) return false;                      // в режиме матрицы нажатие выделяет сегмент
   if (state.hover) return false;                       // здесь строится новый круг
   const u = unitAt(px, py, HOLD_IN);
   if (!u) return false;
@@ -1847,7 +1848,7 @@ function setMtxMode(on){
   state.hoverEl = null;
   updateModeButtons();
   setStatus(state.mtx.on
-    ? "режим: матрица цветка — касание выбирает сегмент, удержание круга удаляет его"
+    ? "режим: матрица цветка — касание выбирает сегмент для заливки"
     : "режим: создание кругов — касание рисует круг, удержание круга удаляет его");
 }
 function updateModeButtons(){
