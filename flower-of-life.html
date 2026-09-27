@@ -348,6 +348,14 @@ let RIGHT_ZONE = 384;        // зарезервированная справа 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const MAX_UNITS = 1500; // практически безлимитно: защита от зависания (подбор точек O(n³)) при гигантских значениях
 
+// ─── два независимых конвейера работы ───────────────────────────
+// BUILD: каркас цветка — круги рисуются и удаляются удержанием.
+// MATRIX: рисунок внутри рисунка — только подсветка круга под курсором
+//         и щелчок по нему («зажигает» круг). Ни построения, ни удаления.
+const MODE = { BUILD: "build", MATRIX: "matrix" };
+function isBuild(){ return state.mode === MODE.BUILD; }
+function isMatrix(){ return state.mode === MODE.MATRIX; }
+
 const state = {
   units: [],            // {x,y (unit r=1), letter, parents:[idx]|null, born, dur, src}
   autoTok: null,
@@ -367,7 +375,8 @@ const state = {
   allCands: [],
   silence: false,       // первый клик гасит автовращение без создания круга
   gVer: 0,              // версия геометрии (для кэша кандидатов матрицы)
-  mtx: { on: false, type: "circle", els: [] },
+  mode: MODE.BUILD,                     // единственный переключатель: каркас либо матрица
+  mtx: { type: "circle", els: [] },
   lastAct: 0,           // время последней активности пользователя (мс) — для затухания кольца поворота
   ringA: 0,             // текущая прозрачность кольца поворота 0..1 (плавное появление/затухание)
   crystal: { on: false, t0: 0 }, // кристаллизация: обводка периметра + скрытые оси
@@ -809,7 +818,10 @@ function updateAmbient(now){
   const want  = (idle > IDLE_SPIN_MS && canSpin) ? 1 : 0;
   const tau  = want ? IDLE_RAMP_MS : IDLE_BRAKE_MS;
   state.ambient.ramp += (want - state.ambient.ramp) * Math.min(1, frameDt / tau);
-  if (state.ambient.ramp < 0.02) state.ambient.ramp = 0;
+  // сброс в ноль — только при торможении. При разгоне шаг за кадр меньше
+  // порога (23 мс / 2000 мс = 0.0115), и рамп застревал бы на нуле навсегда:
+  // фоновое вращение не включалось никогда
+  if (!want && state.ambient.ramp < 0.02) state.ambient.ramp = 0;
   state.ambient.on = state.ambient.ramp > 0.05;
   state.spin = AMBIENT_SPIN * state.ambient.ramp;
   if (want && now - state.ambient.waveT0 > WAVE_PERIOD_MS) state.ambient.waveT0 = now;
@@ -904,8 +916,9 @@ function nearestOnCircle(ux, uy){
   return { x: u0.x + dx / d, y: u0.y + dy / d, parents: [0], src: "manual" };
 }
 
-function computeHover(){
+function computeBuildHover(){
   state.hover = null;
+  if (!isBuild()) return;               // в «М» нет кандидатов построения
   state.allCands = [];
   if (!state.mouse) return;
   const m = toUnit(state.mouse.x, state.mouse.y);
@@ -929,6 +942,7 @@ function computeHover(){
 }
 
 function manualAdd(){
+  if (!isBuild()) return false;         // в «М» круги не рисуются
   if (state.crystal.on) return false;   // цветок зафиксирован кристаллизацией
   if (!state.hover) return false;
   if (state.units.length >= MAX_UNITS) return false;
@@ -981,8 +995,8 @@ function unitAt(px, py, maxD){
   return best;
 }
 function startHold(px, py){
+  if (!isBuild()) return false;         // удаление круга — только в «П»
   if (state.crystal.on || state.autoTok) return false;
-  if (state.mtx.on) return false;                      // в режиме матрицы нажатие выделяет сегмент
   if (state.hover) return false;                       // здесь строится новый круг
   const u = unitAt(px, py, HOLD_IN);
   if (!u) return false;
@@ -1232,6 +1246,7 @@ function drawCrystallize(){
 }
 
 function drawHover(){
+  if (!isBuild()) return;               // в «М» пунктир будущей окружности не показываем
   ctx.save();
   for (const c of state.allCands){
     const p = toPx(c);
@@ -1512,7 +1527,7 @@ const MTX_SNAP = 16;
 const MTX_CIRCLE_HALF = 0.5; // радиус круга = 1; зона чувствительности — ядро до половины радиуса
 function computeHoverEl(){
   state.hoverEl = null;
-  if (!state.mtx.on || !state.mouse || !state.units.length) return;
+  if (!isMatrix() || !state.mouse || !state.units.length) return;
   const types = LAYER_TYPES[state.mtx.type] || ["circle"];
   const list = candidates();
   let best = Infinity, be = null;
@@ -1556,7 +1571,7 @@ function drawMatrix(){
   ctx.lineJoin = "round";
   // при кристаллизации выделение — часть построения: кандидаты и наведение скрыты
   const fixed = state.crystal.on;
-  if (state.mtx.on && !fixed){
+  if (isMatrix() && !fixed){
     const types = LAYER_TYPES[state.mtx.type] || ["circle"];
     const list = candidates();
     ctx.strokeStyle = "rgba(255,216,120,.14)";
@@ -1606,7 +1621,7 @@ function updateCursor(){
 }
 
 function draw(){
-  computeHover();
+  computeBuildHover();
   computeHoverEl();
   stepParticles();
   drawBackground();
@@ -1843,20 +1858,21 @@ $("chipRow").addEventListener("click", e => {
   runAuto();
 });
 
-function setMtxMode(on){
-  state.mtx.on = !!on;
-  state.hoverEl = null;
+function setMode(mode){
+  state.mode = mode === MODE.MATRIX ? MODE.MATRIX : MODE.BUILD;
+  state.hoverEl = null;                 // подсветка сегмента принадлежит только «М»
+  state.hover = null;                   // кандидат построения — только «П»
   updateModeButtons();
-  setStatus(state.mtx.on
-    ? "режим: матрица цветка — касание выбирает сегмент для заливки"
-    : "режим: создание кругов — касание рисует круг, удержание круга удаляет его");
+  setStatus(isMatrix()
+    ? "режим «М» — матрица: круг под курсором подсвечивается, щелчок зажигает его"
+    : "режим «П» — каркас: касание рисует круг, удержание секунды удаляет его");
 }
 function updateModeButtons(){
-  $("modeCircle").classList.toggle("on", !state.mtx.on);
-  $("modeMtx").classList.toggle("on", state.mtx.on);
+  $("modeCircle").classList.toggle("on", isBuild());
+  $("modeMtx").classList.toggle("on", isMatrix());
 }
-$("modeCircle").addEventListener("click", () => setMtxMode(false));
-$("modeMtx").addEventListener("click", () => setMtxMode(true));
+$("modeCircle").addEventListener("click", () => setMode(MODE.BUILD));
+$("modeMtx").addEventListener("click", () => setMode(MODE.MATRIX));
 $("mtxTypes").addEventListener("click", e => {
   const b = e.target.closest(".chip");
   if (!b) return;
@@ -1927,7 +1943,7 @@ scene.addEventListener("pointerdown", e => {
     state.silence = true;
     cancelAuto();
   }
-  computeHover();                                             // решаем: строим круг или удаляем
+  computeBuildHover();                                         // решаем: строим круг или удаляем
   if (startHold(e.clientX, e.clientY)) return;                // удержание круга вместо рисования
   scene.setPointerCapture(e.pointerId);
   state.pointer = {
@@ -1978,11 +1994,14 @@ scene.addEventListener("pointerup", e => {
       state.mouse = { x: e.clientX, y: e.clientY };
       // на тач-устройствах между pointerdown и pointerup не бывает ни pointermove,
       // ни кадра анимации — без пересчёта здесь наведение было бы устаревшим
-      computeHover();
+      computeBuildHover();
       computeHoverEl();
-      if (state.mtx.on){
+      if (isMatrix()){
+        // «М»: только зажигание подсвеченного круга
         if (state.hoverEl) toggleSelect(state.hoverEl);
+        else setStatus("под курсором нет круга — наведите на круг и щёлкните");
       } else {
+        // «П»: только построение каркаса
         manualAdd();
       }
     }
